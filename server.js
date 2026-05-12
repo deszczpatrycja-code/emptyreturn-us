@@ -1,7 +1,7 @@
-const http = require('http');
+onst http = require('http');
 const https = require('https');
 
-const KEY = "sk-ant-api03-x1jfBmfhwLOUxGOydDRZxWIOnQUy--hUGOaKz01AAcRRX930z-thBhdX1W9m56XkYqgz8LG1duKVOHASr_GIpA-63jZKQAA";
+const KEY = process.env.ANTHROPIC_KEY;
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
@@ -9,17 +9,8 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  if (req.method !== 'POST' || req.url !== '/search') {
-    res.writeHead(404);
-    res.end('Not found');
-    return;
-  }
+  if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
+  if (req.method !== 'POST' || req.url !== '/search') { res.writeHead(404); res.end('Not found'); return; }
 
   let body = '';
   req.on('data', chunk => body += chunk);
@@ -53,18 +44,11 @@ const server = http.createServer((req, res) => {
         });
       });
 
-      apiReq.on('error', (e) => {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: e.message }));
-      });
-
+      apiReq.on('error', (e) => { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); });
       apiReq.write(payload);
       apiReq.end();
-    } catch(e) {
-      res.writeHead(400);
-      res.end(JSON.stringify({ error: e.message }));
-    }
+    } catch(e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
   });
 });
 
-server.listen(PORT, () => console.log('EmptyReturn proxy running on port ' + PORT));
+server.listen(PORT, () => console.log('Proxy running on port ' + PORT));
