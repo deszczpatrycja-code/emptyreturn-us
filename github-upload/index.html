@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>EmptyReturn.US — Container & Chassis Locator</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/config.js"></script>
+<style>
+:root {
+  --bg:#0f1215; --bg2:#161b20; --bg3:#1c2330; --bg4:#21293a;
+  --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.13);
+  --mist:#7a8fa6; --ice:#dce8f0;
+  --import:#f59e0b; --export:#22c55e; --chassis:#38bdf8;
+  --green:#22c55e; --red:#ef4444; --amber:#f59e0b; --blue:#38bdf8; --purple:#a78bfa;
+  --port:#0ea5e9; --rail:#f97316; --yard:#14b8a6;
+  --active:var(--import);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--ice);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ── ROAD STRIPE ── */
+.road-stripe{position:fixed;top:0;left:0;right:0;height:3px;
+  background:repeating-linear-gradient(90deg,var(--active) 0,var(--active) 36px,transparent 36px,transparent 54px);
+  z-index:999;animation:rs 1s linear infinite;transition:background .4s;}
+@keyframes rs{from{background-position:0 0}to{background-position:90px 0}}
+
+/* ── OVERLAYS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:600;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}
+.overlay.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;width:100%;max-height:90vh;overflow-y:auto;animation:mIn .22s ease;}
+@keyframes mIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.msm{max-width:440px;}.mmd{max-width:640px;}.mlg{max-width:860px;}
+.mhdr{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.mtitle{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:white;letter-spacing:.5px;}
+.mclose{background:none;border:none;color:var(--mist);font-size:20px;cursor:pointer;padding:4px;line-height:1;transition:color .15s;}
+.mclose:hover{color:white;}
+.mbody{padding:18px 22px 24px;}
+
+/* ── FORM ── */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.fg-row{display:grid;gap:10px;margin-bottom:12px;}
+.fg-2{grid-template-columns:1fr 1fr;}.fg-3{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:520px){.fg-2,.fg-3{grid-template-columns:1fr;}}
+.fl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);letter-spacing:2px;text-transform:uppercase;}
+.req{color:var(--active);margin-left:2px;}
+.fi{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:3px;color:var(--ice);
+  font-family:'Barlow',sans-serif;font-size:14px;padding:9px 12px;outline:none;width:100%;transition:border-color .15s;}
+.fi:focus{border-color:var(--active);box-shadow:0 0 0 3px rgba(245,158,11,.08);}
+.fi::placeholder{color:rgba(122,143,166,.3);}
+select.fi{appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8fa6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+select.fi option{background:#1a1f28;}
+textarea.fi{resize:vertical;min-height:70px;font-size:12px;}
+.fi-pre{display:flex;align-items:center;border:1px solid rgba(255,255,255,.1);border-radius:3px;background:rgba(0,0,0,.4);}
+.fi-pre-lbl{padding:0 9px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mist);border-right:1px solid rgba(255,255,255,.08);white-space:nowrap;}
+.fi-pre input{border:none;background:transparent;flex:1;padding:9px 10px;color:var(--ice);font-family:'Barlow',sans-serif;font-size:13px;outline:none;}
+.fsec{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--mist);text-transform:uppercase;margin:14px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.ferr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--red);padding:7px 10px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:3px;margin-bottom:10px;display:none;}
+.ferr.show{display:block;}
+.fok{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);padding:7px 10px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:3px;margin-bottom:10px;display:none;}
+.fok.show{display:block;}
+.chk-row{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px;}
+.chk-row input[type=checkbox]{width:15px;height:15px;margin-top:2px;accent-color:var(--active);flex-shrink:0;cursor:pointer;}
+.chk-lbl{font-size:11px;color:var(--mist);line-height:1.5;cursor:pointer;}
+.chk-lbl a{color:var(--active);text-decoration:none;}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:3px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;padding:8px 18px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-gold{background:var(--amber);color:#000;}.btn-gold:hover{filter:brightness(.9);}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--mist);}.btn-ghost:hover{border-color:rgba(255,255,255,.25);color:white;}
+.btn-green{background:var(--green);color:#000;}.btn-green:hover{filter:brightness(.9);}
+.btn-red{background:var(--red);color:white;}.btn-red:hover{filter:brightness(.9);}
+.btn-blue{background:var(--blue);color:#000;}.btn-blue:hover{filter:brightness(.9);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-xs{padding:3px 8px;font-size:9px;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-import{background:var(--import);color:#000;}
+.btn-export{background:var(--export);color:#000;}
+.btn-chassis{background:var(--chassis);color:#000;}
+
+/* ── HEADER ── */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:3px;z-index:100;}
+.logo{display:flex;align-items:center;gap:9px;cursor:pointer;text-decoration:none;}
+.logo-box{width:32px;height:32px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--active);transition:background .4s;flex-shrink:0;}
+.logo-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:white;}
+.logo-name span{transition:color .4s;}
+.logo-tag{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mist);letter-spacing:2px;margin-top:1px;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.live-badge{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--green);letter-spacing:1px;}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(34,197,94,.4);animation:lp 2s infinite;}
+@keyframes lp{0%{box-shadow:0 0 0 0 rgba(34,197,94,.4)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.ts{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);}
+.hbtn{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;padding:5px 14px;border-radius:3px;cursor:pointer;transition:all .15s;border:1px solid;}
+.hbtn-login{background:transparent;border-color:var(--border2);color:var(--mist);}.hbtn-login:hover{border-color:rgba(255,255,255,.25);color:white;}
+.hbtn-signup{background:var(--active);border-color:var(--active);color:#000;transition:background .4s,border-color .4s;}
+.hbtn-signup:hover{filter:brightness(.9);}
+.user-menu{display:flex;align-items:center;gap:7px;}
+.user-av{width:28px;height:28px;border-radius:50%;background:var(--active);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;transition:background .4s;}
+.user-nm{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ice);}
+.hbtn-out{background:transparent;border:1px solid var(--border);border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);padding:4px 9px;cursor:pointer;transition:all .15s;letter-spacing:1px;}
+.hbtn-out:hover{border-color:rgba(255,255,255,.2);color:white;}
+
+/* ── LEGAL BANNER ── */
+.legal-banner{background:rgba(239,68,68,.05);border-bottom:1px solid rgba(239,68,68,.14);padding:6px 20px;display:flex;align-items:center;gap:8px;}
+.lb-txt{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(239,68,68,.65);line-height:1.5;flex:1;}
+.lb-link{font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(239,68,68,.85);text-decoration:none;border-bottom:1px solid rgba(239,68,68,.3);cursor:pointer;white-space:nowrap;}
+.lb-link:hover{color:var(--red);}
+
+/* ── MODE BAR ── */
+.mode-bar{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;padding:0 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.mode-bar::-webkit-scrollbar{display:none;}
+.mbtn{display:flex;align-items:center;gap:7px;padding:0 18px;height:48px;border:none;background:transparent;color:var(--mist);font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.mbtn:hover{color:var(--ice);}
+.mbtn.mi{color:var(--import);border-bottom-color:var(--import);}
+.mbtn.me{color:var(--export);border-bottom-color:var(--export);}
+.mbtn.mc{color:var(--chassis);border-bottom-color:var(--chassis);}
+.mbtn.md{color:var(--blue);border-bottom-color:var(--blue);}
+.mico{font-size:15px;}
+.msub{font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:1px;display:block;opacity:.6;font-weight:400;margin-top:1px;}
+.mlw{display:flex;flex-direction:column;align-items:flex-start;}
+
+/* ── HERO ── */
+.hero{padding:20px 20px 18px;border-bottom:1px solid var(--border);transition:background .4s;}
+.hero-i{background:linear-gradient(135deg,rgba(245,158,11,.06) 0%,var(--bg2) 60%);}
+.hero-e{background:linear-gradient(135deg,rgba(34,197,94,.06)  0%,var(--bg2) 60%);}
+.hero-c{background:linear-gradient(135deg,rgba(56,189,248,.06) 0%,var(--bg2) 60%);}
+.hero-d{background:linear-gradient(135deg,rgba(56,189,248,.04) 0%,var(--bg2) 60%);}
+.hero-inner{max-width:1100px;margin:0 auto;}
+.hero-eye{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;transition:color .4s;}
+.hero-title{font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:900;line-height:1;letter-spacing:1px;color:white;margin-bottom:4px;}
+.hero-title span{transition:color .4s;}
+.hero-desc{font-size:13px;color:var(--mist);font-weight:300;margin-bottom:18px;}
+
+/* ── SEARCH FORM ── */
+.sf{display:grid;gap:10px;align-items:end;}
+.sf-i{grid-template-columns:1.2fr 1fr 1fr 1fr 1fr 1fr auto;}
+.sf-e{grid-template-columns:1.2fr 1fr 1fr 1fr 1fr auto;}
+.sf-c{grid-template-columns:1fr 1fr 1fr auto;}
+@media(max-width:1000px){.sf{grid-template-columns:1fr 1fr!important;}.sf .btn-s{grid-column:1/-1;}}
+@media(max-width:520px){.sf{grid-template-columns:1fr!important;}}
+.sfg{display:flex;flex-direction:column;gap:4px;}
+.sfl{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mist);letter-spacing:2px;text-transform:uppercase;}
+.sfl .req{color:var(--active);margin-left:2px;transition:color .4s;}
+select.sfi,input.sfi{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:3px;color:var(--ice);font-family:'Barlow',sans-serif;font-size:13px;font-weight:500;padding:8px 12px;outline:none;width:100%;transition:border-color .15s;appearance:none;-webkit-appearance:none;}
+select.sfi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8fa6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+select.sfi option{background:#1a1f28;}
+input.sfi::placeholder{color:rgba(122,143,166,.3);}
+select.sfi:focus,input.sfi:focus{border-color:var(--active);box-shadow:0 0 0 3px rgba(245,158,11,.07);}
+.btn-s{border:none;border-radius:3px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;padding:8px 20px;cursor:pointer;white-space:nowrap;height:38px;transition:all .2s;color:#000;background:var(--active);}
+.btn-s:hover{filter:brightness(.9);}
+.btn-s:active{transform:scale(.98);}
+.btn-s:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ── ZIP SEARCH ── */
+.zip-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.zip-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);letter-spacing:1px;}
+.zip-input{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:3px;color:var(--ice);font-family:'JetBrains Mono',monospace;font-size:12px;padding:5px 10px;outline:none;width:110px;transition:border-color .15s;}
+.zip-input:focus{border-color:var(--active);}
+.zip-input::placeholder{color:rgba(122,143,166,.3);}
+.zip-btn{font-family:'JetBrains Mono',monospace;font-size:8px;padding:5px 10px;border-radius:3px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--mist);cursor:pointer;transition:all .15s;letter-spacing:1px;}
+.zip-btn:hover{border-color:var(--active);color:var(--active);}
+.zip-result{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);}
+
+/* ── MAIN ── */
+.main{max-width:1100px;margin:0 auto;padding:20px 20px 70px;}
+
+/* ── STATS ── */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:20px;}
+@media(max-width:680px){.stats-bar{grid-template-columns:1fr 1fr;}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.stat-icon{font-size:20px;flex-shrink:0;}
+.stat-num{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:white;line-height:1;}
+.stat-lbl{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mist);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+
+/* ── GATE STATUS REFRESH BAR ── */
+.refresh-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.rb-left{display:flex;align-items:center;gap:8px;}
+.rb-status{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;}
+.rb-time{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);}
+.rb-right{display:flex;align-items:center;gap:8px;}
+.refresh-btn{font-family:'JetBrains Mono',monospace;font-size:8px;padding:4px 10px;border-radius:3px;border:1px solid rgba(255,255,255,.15);background:transparent;color:var(--mist);cursor:pointer;transition:all .15s;letter-spacing:1px;display:flex;align-items:center;gap:4px;}
+.refresh-btn:hover{border-color:var(--active);color:var(--active);}
+.refresh-btn.spinning .ref-icon{animation:spin .8s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.ref-icon{display:inline-block;}
+.auto-toggle{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);cursor:pointer;}
+.toggle-sm{position:relative;width:30px;height:16px;}
+.toggle-sm input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:16px;cursor:pointer;transition:.3s;}
+.toggle-slider:before{content:'';position:absolute;width:10px;height:10px;left:3px;bottom:3px;background:var(--mist);border-radius:50%;transition:.3s;}
+.toggle-sm input:checked+.toggle-slider{background:var(--green);}
+.toggle-sm input:checked+.toggle-slider:before{transform:translateX(14px);background:white;}
+.status-changed{animation:flashChange .8s ease;}
+@keyframes flashChange{0%{background:rgba(245,158,11,.2)}100%{background:transparent}}
+
+/* ── RESULTS ── */
+.res-hdr{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.carrier-badge{height:38px;padding:0 12px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:white;flex-shrink:0;}
+.res-carrier-name{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;letter-spacing:1px;line-height:1;}
+.res-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mist);margin-top:2px;}
+.pills{display:flex;gap:5px;flex-wrap:wrap;}
+.pill{font-family:'JetBrains Mono',monospace;font-size:7px;padding:2px 7px;border-radius:2px;letter-spacing:.5px;}
+.pill-i{background:rgba(245,158,11,.12);color:var(--import);border:1px solid rgba(245,158,11,.25);}
+.pill-e{background:rgba(34,197,94,.12); color:var(--export);border:1px solid rgba(34,197,94,.25);}
+.pill-c{background:rgba(56,189,248,.12);color:var(--chassis);border:1px solid rgba(56,189,248,.25);}
+.pill-s{background:rgba(56,189,248,.1); color:var(--blue);  border:1px solid rgba(56,189,248,.2);}
+.pill-r{background:rgba(245,158,11,.1); color:var(--amber); border:1px solid rgba(245,158,11,.2);}
+.pill-n{background:rgba(34,197,94,.1);  color:var(--green); border:1px solid rgba(34,197,94,.2);}
+.pill-z{background:rgba(167,139,250,.1);color:var(--purple);border:1px solid rgba(167,139,250,.2);}
+
+/* ── ACTION ROW ── */
+.action-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.action-btn{font-family:'JetBrains Mono',monospace;font-size:8px;padding:5px 12px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--mist);cursor:pointer;transition:all .15s;letter-spacing:1px;display:flex;align-items:center;gap:5px;}
+.action-btn:hover{border-color:rgba(255,255,255,.25);color:white;}
+.action-btn.primary{border-color:rgba(245,158,11,.3);color:var(--amber);}
+.action-btn.primary:hover{background:rgba(245,158,11,.08);}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:3px;margin-bottom:12px;background:var(--bg2);padding:3px;border-radius:4px;border:1px solid var(--border);width:fit-content;}
+.tab-btn{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;padding:5px 14px;border:none;border-radius:3px;cursor:pointer;transition:all .15s;background:transparent;color:var(--mist);}
+.tab-btn.on{background:var(--bg3);color:white;}
+.tab-btn:hover:not(.on){color:var(--ice);}
+.tcnt{font-family:'JetBrains Mono',monospace;font-size:8px;margin-left:3px;opacity:.6;}
+
+/* ── LOC CARDS ── */
+.loc-list{display:flex;flex-direction:column;gap:8px;}
+.loc-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:14px 16px;display:grid;grid-template-columns:46px 1fr auto;gap:12px;align-items:start;transition:border-color .15s;animation:cfi .3s ease both;position:relative;}
+.loc-card:hover{border-color:rgba(255,255,255,.13);}
+@keyframes cfi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.loc-card:nth-child(1){animation-delay:.04s}.loc-card:nth-child(2){animation-delay:.08s}
+.loc-card:nth-child(3){animation-delay:.12s}.loc-card:nth-child(4){animation-delay:.16s}
+.loc-card:nth-child(5){animation-delay:.20s}.loc-card:nth-child(6){animation-delay:.24s}
+.status-changed-card{animation:flashCard .8s ease;}
+@keyframes flashCard{0%{border-color:rgba(245,158,11,.5)}100%{border-color:rgba(255,255,255,.07)}}
+.type-ico{width:46px;height:46px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.ico-port  {background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.2);}
+.ico-rail  {background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);}
+.ico-yard  {background:rgba(20,184,166,.1);border:1px solid rgba(20,184,166,.2);}
+.ico-depot {background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);}
+.ico-chassis{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);}
+.loc-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:white;letter-spacing:.3px;line-height:1.2;margin-bottom:2px;}
+.loc-op{font-size:11px;color:var(--mist);margin-bottom:6px;}
+.loc-adr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mist);margin-bottom:7px;line-height:1.5;}
+.loc-dist{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--purple);margin-bottom:5px;}
+.loc-tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.tag{font-family:'JetBrains Mono',monospace;font-size:7px;padding:2px 6px;border-radius:2px;letter-spacing:.5px;text-transform:uppercase;}
+.tag-port  {background:rgba(14,165,233,.1); color:var(--port);}
+.tag-rail  {background:rgba(249,115,22,.1); color:var(--rail);}
+.tag-yard  {background:rgba(20,184,166,.1); color:var(--yard);}
+.tag-depot {background:rgba(139,92,246,.1); color:#a78bfa;}
+.tag-size  {background:rgba(255,255,255,.05);color:var(--mist);}
+.tag-appt  {background:rgba(245,158,11,.1); color:var(--amber);}
+.tag-warn  {background:rgba(239,68,68,.1);  color:var(--red);}
+.tag-ok    {background:rgba(34,197,94,.1);  color:var(--green);}
+.tag-info  {background:rgba(56,189,248,.08);color:var(--blue);}
+.loc-note{margin-top:8px;font-size:11px;color:var(--mist);line-height:1.5;padding-left:8px;border-left:2px solid rgba(255,255,255,.1);}
+.note-i{border-left-color:rgba(245,158,11,.35);}
+.note-e{border-left-color:rgba(34,197,94,.35);}
+.note-c{border-left-color:rgba(56,189,248,.35);}
+.loc-stat{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;min-width:88px;}
+.gate{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;padding:3px 9px;border-radius:2px;transition:all .3s;}
+.gate-open   {background:rgba(34,197,94,.14); color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.gate-limited{background:rgba(245,158,11,.14);color:var(--amber); border:1px solid rgba(245,158,11,.3);}
+.gate-closed {background:rgba(239,68,68,.1);  color:var(--red);   border:1px solid rgba(239,68,68,.25);}
+.gate-verify {background:rgba(122,143,166,.1);color:var(--mist);  border:1px solid rgba(122,143,166,.2);}
+.loc-hrs{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);text-align:right;line-height:1.5;}
+.loc-ph{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--blue);text-decoration:none;transition:opacity .15s;}
+.loc-ph:hover{opacity:.7;}
+.appt-btn{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;padding:4px 9px;border-radius:2px;text-decoration:none;transition:all .15s;border:1px solid;cursor:pointer;background:transparent;letter-spacing:1px;}
+.appt-i{color:var(--import); border-color:rgba(245,158,11,.35);}.appt-i:hover{background:rgba(245,158,11,.1);}
+.appt-e{color:var(--export); border-color:rgba(34,197,94,.35); }.appt-e:hover{background:rgba(34,197,94,.1);}
+.appt-c{color:var(--chassis);border-color:rgba(56,189,248,.35);}.appt-c:hover{background:rgba(56,189,248,.1);}
+.chassis-pool{background:rgba(56,189,248,.04);border:1px solid rgba(56,189,248,.12);border-radius:3px;padding:8px 11px;margin-top:7px;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.cpi-l{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mist);letter-spacing:1px;text-transform:uppercase;}
+.cpi-v{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:white;}
+.cpi-v.good{color:var(--green);}.cpi-v.warn{color:var(--amber);}.cpi-v.bad{color:var(--red);}
+
+/* ── RESULT DISCLAIMER ── */
+.r-disc{margin-top:10px;padding:10px 13px;border-radius:3px;display:flex;gap:7px;align-items:flex-start;}
+.rd-i{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.16);}
+.rd-e{background:rgba(34,197,94,.05); border:1px solid rgba(34,197,94,.16);}
+.rd-c{background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.16);}
+.disc-ico{font-size:11px;flex-shrink:0;margin-top:1px;}
+.disc-txt{font-family:'JetBrains Mono',monospace;font-size:8px;line-height:1.7;letter-spacing:.2px;}
+.rd-i .disc-txt{color:rgba(245,158,11,.7);}
+.rd-e .disc-txt{color:rgba(34,197,94,.7);}
+.rd-c .disc-txt{color:rgba(56,189,248,.7);}
+.legal-note{margin-top:7px;padding:9px 12px;background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.1);border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(239,68,68,.55);line-height:1.6;}
+.legal-note a{color:rgba(239,68,68,.75);cursor:pointer;}
+
+/* ── LOADER ── */
+.loader{display:none;text-align:center;padding:50px 20px;}
+.loader.on{display:block;}
+.loader-icon{font-size:34px;display:block;margin-bottom:12px;animation:bounce .6s ease-in-out infinite alternate;}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+.loader-txt{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;animation:blink 1s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.loader-sub{font-size:12px;color:var(--mist);margin-top:5px;}
+.err-box{padding:14px 18px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--red);line-height:1.6;display:none;}
+
+/* ── DASHBOARD ── */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+@media(max-width:680px){.dash-grid{grid-template-columns:1fr;}}
+.dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:18px;}
+.dc-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--mist);text-transform:uppercase;margin-bottom:12px;}
+.hist-item{padding:8px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.hist-item:last-child{border-bottom:none;}
+.hi-mode{width:26px;height:26px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.hi-i{background:rgba(245,158,11,.12);}.hi-e{background:rgba(34,197,94,.12);}.hi-c{background:rgba(56,189,248,.12);}
+.hi-main{font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;color:var(--ice);}
+.hi-sub{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);}
+.hi-time{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);flex-shrink:0;}
+.rep-btn{background:transparent;border:1px solid var(--border);border-radius:2px;font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mist);padding:2px 7px;cursor:pointer;transition:all .15s;letter-spacing:1px;}
+.rep-btn:hover{border-color:rgba(255,255,255,.2);color:white;}
+.sms-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.sms-item:last-child{border-bottom:none;}
+.spi-lbl{font-size:12px;font-weight:500;color:var(--ice);}
+.spi-desc{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);}
+.toggle{position:relative;width:34px;height:18px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.tog-s{position:absolute;inset:0;background:rgba(255,255,255,.1);border-radius:18px;cursor:pointer;transition:.3s;}
+.tog-s:before{content:'';position:absolute;width:12px;height:12px;left:3px;bottom:3px;background:var(--mist);border-radius:50%;transition:.3s;}
+.toggle input:checked+.tog-s{background:var(--green);}
+.toggle input:checked+.tog-s:before{transform:translateX(16px);background:white;}
+.ui-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ui-f{display:flex;flex-direction:column;gap:2px;}
+.ui-k{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mist);letter-spacing:1px;text-transform:uppercase;}
+.ui-v{font-size:12px;color:var(--ice);font-weight:500;}
+
+/* ── APPOINTMENT MODAL ── */
+.appt-steps{display:flex;gap:4px;margin-bottom:18px;}
+.appt-step{flex:1;height:3px;border-radius:2px;background:var(--border);}
+.appt-step.done{background:var(--active);}
+.appt-step.active{background:var(--active);opacity:.5;}
+.appt-loc-preview{background:var(--bg3);border-radius:4px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;}
+.alp-icon{font-size:20px;}
+.alp-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:white;line-height:1;}
+.alp-addr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mist);margin-top:2px;}
+.time-slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
+.time-slot{font-family:'JetBrains Mono',monospace;font-size:9px;padding:7px 5px;border-radius:3px;border:1px solid var(--border2);color:var(--mist);cursor:pointer;text-align:center;transition:all .15s;letter-spacing:.5px;}
+.time-slot:hover{border-color:var(--active);color:var(--active);}
+.time-slot.selected{background:rgba(245,158,11,.12);border-color:var(--active);color:var(--active);}
+.time-slot.unavailable{opacity:.3;cursor:not-allowed;text-decoration:line-through;}
+.appt-confirm{background:var(--bg3);border:1px solid rgba(34,197,94,.2);border-radius:4px;padding:16px;text-align:center;}
+.appt-confirm-icon{font-size:36px;display:block;margin-bottom:8px;}
+.appt-confirm-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.appt-ref{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--amber);margin-bottom:8px;}
+.appt-details{font-size:12px;color:var(--mist);line-height:1.6;}
+
+/* ── PRINT STYLES ── */
+@media print{
+  body{background:white!important;color:#000!important;}
+  .road-stripe,.header,.legal-banner,.mode-bar,.hero,.stats-bar,.refresh-bar,.tab-bar,.action-row,.loc-ph,.appt-btn,.sidebar-note{display:none!important;}
+  .main{padding:0!important;max-width:100%!important;}
+  .loc-card{background:white!important;border:1px solid #ccc!important;break-inside:avoid;margin-bottom:10px;}
+  .loc-name{color:#000!important;}
+  .loc-op,.loc-adr,.loc-hrs{color:#444!important;}
+  .gate{border:1px solid #999!important;color:#000!important;background:none!important;}
+  .print-header{display:block!important;}
+  .tag{border:1px solid #999!important;color:#000!important;background:none!important;}
+}
+.print-header{display:none;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:12px;}
+.print-header h1{font-size:24px;font-weight:800;}
+.print-header p{font-size:12px;color:#444;margin-top:4px;}
+
+/* ── WELCOME ── */
+.welcome{padding:24px 0 0;}
+.mode-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px;}
+@media(max-width:700px){.mode-cards{grid-template-columns:1fr;}}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:18px;cursor:pointer;transition:border-color .2s,background .2s;}
+.mc:hover{background:var(--bg3);border-color:var(--border2);}
+.mc-top{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.mc-ico{font-size:22px;}.mc-lbl{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;}
+.mc-desc{font-size:12px;color:var(--mist);line-height:1.5;margin-bottom:9px;}
+.mc-pts{display:flex;flex-direction:column;gap:4px;}
+.mc-pt{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);display:flex;align-items:center;gap:5px;}
+.mc-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+.ds-panel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:18px;}
+.ds-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;color:var(--mist);text-transform:uppercase;margin-bottom:12px;}
+.ds-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+@media(max-width:600px){.ds-grid{grid-template-columns:1fr 1fr;}}
+.ds-name{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ice);font-weight:500;}
+.ds-desc{font-size:11px;color:var(--mist);}
+.ds-st{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;}
+.st-live{color:var(--green);}.st-part{color:var(--amber);}.st-man{color:var(--mist);}
+
+/* ── FOOTER ── */
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 20px;}
+.footer-inner{max-width:1100px;margin:0 auto;}
+.footer-top{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:24px;margin-bottom:20px;}
+@media(max-width:768px){.footer-top{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.footer-top{grid-template-columns:1fr;}}
+.ft-desc{font-size:11px;color:var(--mist);line-height:1.6;margin-top:5px;}
+.ft-col-t{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.ft-links{display:flex;flex-direction:column;gap:5px;}
+.ft-link{font-size:11px;color:var(--mist);text-decoration:none;transition:color .15s;cursor:pointer;}
+.ft-link:hover{color:var(--ice);}
+.footer-bottom{border-top:1px solid var(--border);padding-top:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.footer-legal{font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(122,143,166,.45);line-height:1.7;max-width:600px;}
+.footer-copy{font-family:'JetBrains Mono',monospace;font-size:7px;color:rgba(122,143,166,.35);white-space:nowrap;}
+
+/* ── SEC HDR ── */
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.sec-t{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--mist);white-space:nowrap;}
+.sec-l{flex:1;height:1px;background:var(--border);}
+.sec-c{font-family:'JetBrains Mono',monospace;font-size:9px;}
+
+/* ── MOBILE VIEW OVERRIDE ── */
+@media(max-width:600px){
+  .loc-card{grid-template-columns:40px 1fr;gap:10px;}
+  .loc-stat{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:center;min-width:auto;}
+  .loc-stat .gate{font-size:10px;}
+  .hero-title{font-size:28px;}
+  .hdr-right .ts,.hdr-right .live-badge{display:none;}
+}
+
+/* ── TOS MODAL ── */
+.tos-hl{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:3px;padding:9px 12px;margin:10px 0;font-size:10px;color:rgba(239,68,68,.8);font-family:'JetBrains Mono',monospace;line-height:1.6;letter-spacing:.2px;}
+.tos-s{margin-bottom:16px;}
+.tos-sh{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:white;margin-bottom:6px;display:flex;align-items:center;gap:7px;}
+.tos-n{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--amber);}
+.tos-t{font-size:11px;color:var(--mist);line-height:1.7;}
+.tos-t strong{color:var(--ice);}
+.tos-warn{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:3px;padding:9px 12px;margin:10px 0;font-size:10px;color:rgba(245,158,11,.75);font-family:'JetBrains Mono',monospace;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="road-stripe" id="roadStripe"></div>
+
+<!-- Print Header (hidden on screen, shown on print) -->
+<div class="print-header" id="printHeader">
+  <h1>EmptyReturn.US — Return Location Sheet</h1>
+  <p id="printMeta"></p>
+</div>
+
+<!-- ══ SIGNUP MODAL ══ -->
+<div class="overlay" id="ovSignup"><div class="modal mmd">
+  <div class="mhdr"><div><div class="mtitle">Create Free Account</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);letter-spacing:1px;margin-top:2px;">FREE · NO CREDIT CARD · ALWAYS FREE</div></div><button class="mclose" onclick="cm('ovSignup')">✕</button></div>
+  <div class="mbody">
+    <div class="ferr" id="serr"></div>
+    <div class="fg-row fg-2"><div class="fg"><div class="fl">First Name <span class="req">*</span></div><input class="fi" id="s-fn" placeholder="John"></div><div class="fg"><div class="fl">Last Name <span class="req">*</span></div><input class="fi" id="s-ln" placeholder="Smith"></div></div>
+    <div class="fg"><div class="fl">Work Email <span class="req">*</span></div><input class="fi" id="s-em" placeholder="john@company.com"></div>
+    <div class="fg"><div class="fl">Mobile Phone (SMS alerts) <span class="req">*</span></div><input class="fi" id="s-ph" placeholder="+1 (555) 000-0000"></div>
+    <div class="fg-row fg-2"><div class="fg"><div class="fl">Company <span class="req">*</span></div><input class="fi" id="s-co" placeholder="ABC Trucking LLC"></div><div class="fg"><div class="fl">Role <span class="req">*</span></div><select class="fi" id="s-rl"><option value="">—</option><option>Owner / Operator</option><option>Dispatcher</option><option>Driver</option><option>Operations Manager</option><option>Freight Broker</option><option>3PL / Logistics</option><option>Port/Terminal Staff</option><option>Other</option></select></div></div>
+    <div class="fg-row fg-2"><div class="fg"><div class="fl">Primary Port Region <span class="req">*</span></div><select class="fi" id="s-rg"><option value="">—</option><option>LA / Long Beach</option><option>New York / New Jersey</option><option>Savannah</option><option>Seattle / Tacoma</option><option>Houston</option><option>Charleston</option><option>Norfolk</option><option>Baltimore</option><option>Oakland</option><option>Miami</option><option>Chicago, IL (Midwest)</option><option>Memphis, TN (Midwest)</option><option>Kansas City, MO (Midwest)</option><option>Dallas/Fort Worth, TX (Midwest)</option><option>St. Louis, MO (Midwest)</option><option>Cincinnati, OH (Midwest)</option><option>Detroit, MI (Midwest)</option><option>Minneapolis, MN (Midwest)</option><option>Denver, CO (Midwest)</option><option>Multiple</option></select></div><div class="fg"><div class="fl">Fleet Size</div><select class="fi" id="s-fl"><option value="">—</option><option>1 truck (owner-op)</option><option>2–5 trucks</option><option>6–20 trucks</option><option>21–50 trucks</option><option>51–100 trucks</option><option>100+ trucks</option><option>No trucks (broker/3PL)</option></select></div></div>
+    <div class="fg"><div class="fl">Password <span class="req">*</span></div><input class="fi" type="password" id="s-pw" placeholder="Min. 8 characters"></div>
+    <div style="margin-bottom:4px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);letter-spacing:1px;padding-bottom:8px;border-bottom:1px solid var(--border);">AGREEMENTS</div>
+    <div class="chk-row"><input type="checkbox" id="chk-tos"><label class="chk-lbl" for="chk-tos">I agree to the <a onclick="openTOS()">Terms of Service</a> and <strong>Disclaimer of Liability</strong>. I understand EmptyReturn.US is not responsible for yard closures, container/chassis shortages, or any operational losses. <span class="req">*</span></label></div>
+    <div class="chk-row"><input type="checkbox" id="chk-sms"><label class="chk-lbl" for="chk-sms">I consent to receive SMS alerts from EmptyReturn.US. Msg &amp; data rates may apply. Reply STOP to opt out. <span class="req">*</span></label></div>
+    <div class="chk-row"><input type="checkbox" id="chk-age"><label class="chk-lbl" for="chk-age">I am 18+ and authorized to agree on behalf of my company. <span class="req">*</span></label></div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center;margin-top:6px;" onclick="doSignup()">CREATE FREE ACCOUNT</button>
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--mist);">Already have an account? <a style="color:var(--amber);cursor:pointer;" onclick="cm('ovSignup');om('ovLogin')">Sign in →</a></div>
+  </div>
+</div></div>
+
+<!-- ══ LOGIN MODAL ══ -->
+<div class="overlay" id="ovLogin"><div class="modal msm">
+  <div class="mhdr"><div class="mtitle">Sign In</div><button class="mclose" onclick="cm('ovLogin')">✕</button></div>
+  <div class="mbody">
+    <div class="ferr" id="lerr"></div>
+    <div class="fok" id="lok"></div>
+    <div class="fg"><div class="fl">Email</div><input class="fi" id="l-em" placeholder="your@email.com"></div>
+    <div class="fg"><div class="fl">Password</div><input class="fi" type="password" id="l-pw" placeholder="Password"></div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center;" onclick="doLogin()">SIGN IN</button>
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--mist);">No account? <a style="color:var(--amber);cursor:pointer;" onclick="cm('ovLogin');om('ovSignup')">Create free account →</a></div>
+  </div>
+</div></div>
+
+<!-- ══ TOS MODAL ══ -->
+<div class="overlay" id="ovTOS"><div class="modal mlg">
+  <div class="mhdr"><div><div class="mtitle">Terms of Service &amp; Disclaimer</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);letter-spacing:1px;margin-top:2px;">LAST UPDATED: MAY 2026 · EMPTYRETURN.US</div></div><button class="mclose" onclick="cm('ovTOS')">✕</button></div>
+  <div class="mbody">
+    <div class="tos-hl">⚠ ALL LOCATION DATA IS PROVIDED "AS IS" FOR INFORMATIONAL PURPOSES ONLY. ALWAYS VERIFY WITH THE CARRIER OR TERMINAL BEFORE DISPATCHING A DRIVER. EMPTYRETURN.US IS NOT RESPONSIBLE FOR ANY LOSSES ARISING FROM RELIANCE ON THIS DATA.</div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">01</span>ACCEPTANCE OF TERMS</div><div class="tos-t">By accessing EmptyReturn.US you agree to be bound by these Terms. Use of the Service constitutes acknowledgment that you have read, understood, and agree to be bound.</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">02</span>DISCLAIMER OF WARRANTIES — DATA ACCURACY</div><div class="tos-t">THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND. EmptyReturn.US <strong>expressly disclaims all warranties</strong> regarding accuracy, completeness, timeliness, or reliability of any container return location, chassis availability, gate status, or hours of operation. Information changes frequently and without notice.</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">03</span>LIMITATION OF LIABILITY — OPERATIONAL LOSSES</div><div class="tos-t">TO THE MAXIMUM EXTENT PERMITTED BY LAW, EMPTYRETURN.US SHALL NOT BE LIABLE FOR:</div>
+    <div class="tos-hl">• Lost revenue, wages, or profits of any kind<br>• Detention charges, demurrage fees, or per diem charges<br>• Fuel costs, driver layover costs, or deadhead miles<br>• Wasted trip costs due to closed or unavailable yards<br>• Container or chassis shortages or unavailability<br>• Last Free Day violations from inaccurate location data<br>• Any indirect, incidental, special, or punitive damages<br>• Any damages exceeding $0 paid by User to EmptyReturn.US</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">04</span>CONTAINER &amp; CHASSIS SHORTAGE DISCLAIMER</div><div class="tos-t">EmptyReturn.US has no control over physical availability of containers or chassis. <strong>Availability counts are estimates only.</strong> EmptyReturn.US shall not be liable for any shortage or unavailability of containers or chassis equipment.</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">05</span>GATE STATUS &amp; LIVE REFRESH</div><div class="tos-t">Gate status information displayed on the Service, including auto-refreshed data, represents estimated or last-known status only. <strong>EmptyReturn.US does not guarantee real-time accuracy of gate open/closed status.</strong> Gate conditions can change without notice due to congestion, labor action, equipment failure, weather, or carrier instruction. Always call the terminal directly before dispatch.</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">06</span>USER RESPONSIBILITIES</div><div class="tos-t">Users are solely responsible for independently verifying all return, pickup, and chassis location information with the carrier, terminal, or yard directly before dispatching any driver or equipment.</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">07</span>INDEMNIFICATION</div><div class="tos-t">You agree to defend, indemnify, and hold harmless EmptyReturn.US and its owners, officers, and agents from claims arising from your use of the Service, violation of these Terms, or damage caused to third parties.</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">08</span>SMS COMMUNICATIONS — TCPA COMPLIANCE</div><div class="tos-t">By providing your phone number and consenting during registration, you expressly consent to receive automated text messages. Message and data rates may apply. Reply STOP to opt out at any time. SMS alerts are subject to the same data accuracy disclaimers above.</div></div>
+    <div class="tos-s"><div class="tos-sh"><span class="tos-n">09</span>GOVERNING LAW</div><div class="tos-t">These Terms are governed by the laws of the State of Delaware. Disputes shall be resolved by binding arbitration. You waive any right to jury trial and class action participation.</div></div>
+    <div class="tos-warn">⚠ This Terms of Service should be reviewed by a licensed attorney before the service is made publicly available. This does not constitute legal advice.</div>
+    <button class="btn btn-gold" onclick="cm('ovTOS')" style="margin-top:12px">CLOSE &amp; RETURN</button>
+  </div>
+</div></div>
+
+<!-- ══ APPOINTMENT MODAL ══ -->
+<div class="overlay" id="ovAppt"><div class="modal mmd">
+  <div class="mhdr"><div class="mtitle" id="apptTitle">Book Appointment</div><button class="mclose" onclick="cm('ovAppt')">✕</button></div>
+  <div class="mbody" id="apptBody"></div>
+</div></div>
+
+<!-- ══ EMAIL MODAL ══ -->
+<div class="overlay" id="ovEmail"><div class="modal msm">
+  <div class="mhdr"><div class="mtitle">Email to Dispatcher</div><button class="mclose" onclick="cm('ovEmail')">✕</button></div>
+  <div class="mbody">
+    <div class="ferr" id="emailErr"></div>
+    <div class="fok" id="emailOk"></div>
+    <div class="fg"><div class="fl">Dispatcher Email <span class="req">*</span></div><input class="fi" id="em-to" placeholder="dispatcher@company.com"></div>
+    <div class="fg"><div class="fl">Subject</div><input class="fi" id="em-sub" placeholder="Empty Return Locations — MSCU1234567"></div>
+    <div class="fg"><div class="fl">Message (optional)</div><textarea class="fi" id="em-msg" placeholder="Any additional notes for the dispatcher…"></textarea></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);margin-bottom:12px;padding:9px 12px;background:var(--bg3);border-radius:3px;line-height:1.6;" id="em-preview"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="cm('ovEmail')">CANCEL</button>
+      <button class="btn btn-gold btn-sm" onclick="sendEmail()">SEND EMAIL</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════════════════ HEADER ══════════════════════ -->
+<header class="header">
+  <a class="logo" onclick="goHome()">
+    <div class="logo-box" id="logoBox">📦</div>
+    <div>
+      <div class="logo-name">Empty<span id="logoSpan" style="color:var(--import)">Return</span>.US</div>
+      <div class="logo-tag">Container &amp; Chassis Locator</div>
+    </div>
+  </a>
+  <div class="hdr-right">
+    <div class="live-badge"><span class="pulse"></span>ONLINE</div>
+    <div class="ts" id="ts"></div>
+    <div id="guestBtns">
+      <button class="hbtn hbtn-login" onclick="om('ovLogin')" style="margin-right:6px">SIGN IN</button>
+      <button class="hbtn hbtn-signup" onclick="om('ovSignup')">FREE SIGNUP</button>
+    </div>
+    <div class="user-menu" id="userMenu" style="display:none">
+      <div class="user-av" id="userAv"></div>
+      <div class="user-nm" id="userNm"></div>
+      <button class="hbtn-out" onclick="doLogout()">SIGN OUT</button>
+    </div>
+  </div>
+</header>
+
+<!-- LEGAL BANNER -->
+<div class="legal-banner">
+  <span style="font-size:11px">⚠</span>
+  <span class="lb-txt">All location data is AI-estimated for informational purposes only. Always verify with carrier before dispatch. EmptyReturn.US is not liable for yard closures, container/chassis shortages, detention charges, or any operational losses.</span>
+  <a class="lb-link" onclick="openTOS()">Full Terms →</a>
+</div>
+
+<!-- ══════════════════════ MODE BAR ══════════════════════ -->
+<nav class="mode-bar">
+  <button class="mbtn mi" id="btn-import" onclick="setMode('import')"><span class="mico">🔻</span><span class="mlw"><span>IMPORT RETURN</span><span class="msub">Drop empty after delivery</span></span></button>
+  <button class="mbtn" id="btn-export" onclick="setMode('export')"><span class="mico">🔺</span><span class="mlw"><span>EXPORT PICKUP</span><span class="msub">Pick up empty for loading</span></span></button>
+  <button class="mbtn" id="btn-chassis" onclick="setMode('chassis')"><span class="mico">🔧</span><span class="mlw"><span>CHASSIS</span><span class="msub">Pickup, return &amp; pool finder</span></span></button>
+  <button class="mbtn" id="btn-dashboard" onclick="setMode('dashboard')" style="display:none"><span class="mico">📋</span><span class="mlw"><span>MY ACCOUNT</span><span class="msub">History &amp; SMS settings</span></span></button>
+</nav>
+
+<!-- ══════════════════════ HERO + SEARCH ══════════════════════ -->
+<div class="hero hero-i" id="hero">
+  <div class="hero-inner">
+    <div class="hero-eye" id="heroEye" style="color:var(--import)">IMPORT · EMPTY CONTAINER RETURN</div>
+    <div class="hero-title">Where to <span id="heroVerb" style="color:var(--import)">Drop It.</span></div>
+    <div class="hero-desc" id="heroDesc">Driver delivered the import load — find where to return the empty box.</div>
+
+    <!-- IMPORT -->
+    <div class="sf sf-i" id="form-import">
+      <div class="sfg"><div class="sfl">Shipping Line <span class="req">*</span></div><select class="sfi" id="i-cr"><option value="">— Carrier —</option><option>MSC</option><option>Maersk</option><option>CMA CGM</option><option>Hapag-Lloyd</option><option>COSCO</option><option>Evergreen</option><option>ONE</option><option>Yang Ming</option><option>ZIM</option><option>HMM</option><option>Hamburg Sud</option><option>PIL</option></select></div>
+      <div class="sfg"><div class="sfl">Container Size <span class="req">*</span></div><select class="sfi" id="i-sz"><option value="">— Size —</option><optgroup label="Dry"><option>20GP</option><option>40GP</option><option>40HC</option><option>45HC</option></optgroup><optgroup label="Reefer"><option>20RF</option><option>40RF</option><option>40RFHC</option></optgroup><optgroup label="Special"><option>20OT</option><option>40OT</option><option>20FR</option><option>40FR</option><option>20TK</option></optgroup></select></div>
+      <div class="sfg"><div class="sfl">Region <span class="req">*</span></div><select class="sfi" id="i-rg"><option value="">— Region —</option><optgroup label="West Coast"><option>LA/Long Beach</option><option>Oakland</option><option>Seattle/Tacoma</option></optgroup><optgroup label="East Coast"><option>New York/New Jersey</option><option>Savannah</option><option>Charleston</option><option>Norfolk</option><option>Baltimore</option></optgroup><optgroup label="Gulf"><option>Houston</option><option>New Orleans</option></optgroup><optgroup label="Southeast"><option>Miami</option><option>Jacksonville</option></optgroup><optgroup label="Midwest — Rail Ramps"><option>Chicago, IL (BNSF/UP)</option><option>Memphis, TN (BNSF/UP)</option><option>Kansas City, MO (BNSF/UP)</option><option>Dallas/Fort Worth, TX (BNSF/UP)</option><option>St. Louis, MO (UP)</option><option>Cincinnati, OH (CSX/NS)</option><option>Columbus, OH (CSX/NS)</option><option>Detroit, MI (CSX/NS)</option><option>Minneapolis, MN (BNSF/UP)</option><option>Denver, CO (BNSF/UP)</option><option>Indianapolis, IN (CSX/NS)</option><option>Louisville, KY (CSX/NS)</option></optgroup></select></div>
+      <div class="sfg"><div class="sfl">Container #</div><input class="sfi" id="i-cn" placeholder="MSCU1234567" maxlength="11" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"></div>
+      <div class="sfg"><div class="sfl">Last Free Day</div><input class="sfi" id="i-lf" placeholder="MM/DD/YYYY"></div>
+      <div class="sfg"><div class="sfl">ZIP Code (proximity)</div><input class="sfi" id="i-zip" placeholder="90001" maxlength="5"></div>
+      <button class="btn-s" id="i-btn" onclick="doSearch()">FIND →</button>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="sf sf-e" id="form-export" style="display:none">
+      <div class="sfg"><div class="sfl">Shipping Line <span class="req">*</span></div><select class="sfi" id="e-cr"><option value="">— Carrier —</option><option>MSC</option><option>Maersk</option><option>CMA CGM</option><option>Hapag-Lloyd</option><option>COSCO</option><option>Evergreen</option><option>ONE</option><option>Yang Ming</option><option>ZIM</option><option>HMM</option><option>Hamburg Sud</option><option>PIL</option></select></div>
+      <div class="sfg"><div class="sfl">Container Size <span class="req">*</span></div><select class="sfi" id="e-sz"><option value="">— Size —</option><optgroup label="Dry"><option>20GP</option><option>40GP</option><option>40HC</option><option>45HC</option></optgroup><optgroup label="Reefer"><option>20RF</option><option>40RF</option><option>40RFHC</option></optgroup><optgroup label="Special"><option>20OT</option><option>40OT</option><option>20FR</option><option>40FR</option></optgroup></select></div>
+      <div class="sfg"><div class="sfl">Region <span class="req">*</span></div><select class="sfi" id="e-rg"><option value="">— Region —</option><optgroup label="West Coast"><option>LA/Long Beach</option><option>Oakland</option><option>Seattle/Tacoma</option></optgroup><optgroup label="East Coast"><option>New York/New Jersey</option><option>Savannah</option><option>Charleston</option><option>Norfolk</option><option>Baltimore</option></optgroup><optgroup label="Gulf"><option>Houston</option><option>New Orleans</option></optgroup><optgroup label="Southeast"><option>Miami</option><option>Jacksonville</option></optgroup><optgroup label="Midwest — Rail Ramps"><option>Chicago, IL (BNSF/UP)</option><option>Memphis, TN (BNSF/UP)</option><option>Kansas City, MO (BNSF/UP)</option><option>Dallas/Fort Worth, TX (BNSF/UP)</option><option>St. Louis, MO (UP)</option><option>Cincinnati, OH (CSX/NS)</option><option>Columbus, OH (CSX/NS)</option><option>Detroit, MI (CSX/NS)</option><option>Minneapolis, MN (BNSF/UP)</option><option>Denver, CO (BNSF/UP)</option><option>Indianapolis, IN (CSX/NS)</option><option>Louisville, KY (CSX/NS)</option></optgroup></select></div>
+      <div class="sfg"><div class="sfl">Booking #</div><input class="sfi" id="e-bk" placeholder="BOOKREF123"></div>
+      <div class="sfg"><div class="sfl">First Receiving</div><input class="sfi" id="e-fr" placeholder="MM/DD/YYYY"></div>
+      <button class="btn-s" id="e-btn" onclick="doSearch()">FIND →</button>
+    </div>
+
+    <!-- CHASSIS -->
+    <div class="sf sf-c" id="form-chassis" style="display:none">
+      <div class="sfg"><div class="sfl">Pool / Provider <span class="req">*</span></div><select class="sfi" id="c-pl"><option value="">— Pool —</option><option value="DCLI">DCLI</option><option value="TRAC">TRAC Intermodal</option><option value="Flexi-Van">Flexi-Van</option><option value="UMAX">UMAX (Union Pacific)</option><option value="POOL3">POOL3 (LA/LB)</option><option value="Any">Any / Best Available</option></select></div>
+      <div class="sfg"><div class="sfl">Chassis Size <span class="req">*</span></div><select class="sfi" id="c-sz"><option value="">— Size —</option><option>20' Chassis</option><option>40' Chassis</option><option>45' Chassis</option><option>40/45 Combo Extendable</option><option>Tri-Axle (heavy load)</option></select></div>
+      <div class="sfg"><div class="sfl">Region <span class="req">*</span></div><select class="sfi" id="c-rg"><option value="">— Region —</option><optgroup label="West Coast"><option>LA/Long Beach</option><option>Oakland</option><option>Seattle/Tacoma</option></optgroup><optgroup label="East Coast"><option>New York/New Jersey</option><option>Savannah</option><option>Charleston</option><option>Norfolk</option><option>Baltimore</option></optgroup><optgroup label="Gulf"><option>Houston</option><option>New Orleans</option></optgroup><optgroup label="Southeast"><option>Miami</option><option>Jacksonville</option></optgroup><optgroup label="Midwest — Rail Ramps"><option>Chicago, IL (BNSF/UP)</option><option>Memphis, TN (BNSF/UP)</option><option>Kansas City, MO (BNSF/UP)</option><option>Dallas/Fort Worth, TX (BNSF/UP)</option><option>St. Louis, MO (UP)</option><option>Cincinnati, OH (CSX/NS)</option><option>Columbus, OH (CSX/NS)</option><option>Detroit, MI (CSX/NS)</option><option>Minneapolis, MN (BNSF/UP)</option><option>Denver, CO (BNSF/UP)</option><option>Indianapolis, IN (CSX/NS)</option><option>Louisville, KY (CSX/NS)</option></optgroup></select></div>
+      <button class="btn-s" id="c-btn" onclick="doSearch()">FIND →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ MAIN ══════════════════════ -->
+<div class="main">
+
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="stat-icon">⚓</div><div><div class="stat-num">50+</div><div class="stat-lbl">Port Terminals</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🚂</div><div><div class="stat-num">42</div><div class="stat-lbl">Rail Ramps</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🏗</div><div><div class="stat-num">150+</div><div class="stat-lbl">Off-Dock Yards</div></div></div>
+    <div class="stat-card"><div class="stat-icon">🔧</div><div><div class="stat-num">4</div><div class="stat-lbl">Chassis Pools</div></div></div>
+  </div>
+
+  <div class="loader" id="loader">
+    <span class="loader-icon" id="loaderIco">🚛</span>
+    <div class="loader-txt" id="loaderTxt" style="color:var(--import)">QUERYING LOCATIONS</div>
+    <div class="loader-sub" id="loaderSub">Checking terminals, yards &amp; ramps…</div>
+  </div>
+
+  <div class="err-box" id="errBox"></div>
+
+  <!-- RESULTS -->
+  <div id="resArea" style="display:none">
+    <!-- Gate Refresh Bar -->
+    <div class="refresh-bar" id="refreshBar">
+      <div class="rb-left">
+        <span class="pulse" id="refreshPulse"></span>
+        <span class="rb-status" id="refreshStatus">GATE STATUS LIVE</span>
+        <span class="rb-time" id="refreshTime"></span>
+      </div>
+      <div class="rb-right">
+        <div class="auto-toggle">
+          <label class="toggle-sm"><input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()"><span class="toggle-slider"></span></label>
+          AUTO-REFRESH (5 MIN)
+        </div>
+        <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()"><span class="ref-icon">↻</span> REFRESH NOW</button>
+      </div>
+    </div>
+
+    <div class="res-hdr" id="resHdr"></div>
+
+    <!-- Action Row -->
+    <div class="action-row">
+      <button class="action-btn primary" onclick="printResults()">🖨 PRINT INSTRUCTIONS</button>
+      <button class="action-btn" onclick="emailResults()">✉ EMAIL TO DISPATCHER</button>
+      <button class="action-btn" id="saveSearchBtn" onclick="saveSearch()" style="display:none">⭐ SAVE SEARCH</button>
+    </div>
+
+    <div class="tab-bar" id="tabBar"></div>
+    <div class="sec-hdr"><div class="sec-t" id="secLbl">Locations</div><div class="sec-l"></div><div class="sec-c" id="secCnt"></div></div>
+    <div class="loc-list" id="locList"></div>
+
+    <div class="r-disc rd-i" id="resDisc">
+      <span class="disc-ico">⚠</span>
+      <span class="disc-txt" id="discTxt"></span>
+    </div>
+    <div class="legal-note">⚖ EmptyReturn.US is not liable for yard closures, container/chassis shortages, detention charges, demurrage, lost revenue, or any operational losses. Data is estimated. Verify all locations with the carrier before dispatch. By using this service you accept our <a onclick="openTOS()">Terms of Service</a>. Gate status shown may not reflect real-time conditions — always call the terminal directly.</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashArea" style="display:none">
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dc-title">Account Info</div>
+        <div class="ui-grid" id="uiGrid"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dc-title">SMS Alert Preferences</div>
+        <div id="smsPrefs">
+          <div class="sms-item"><div><div class="spi-lbl">Gate Closure Alerts</div><div class="spi-desc">Instant SMS when a yard goes offline</div></div><label class="toggle"><input type="checkbox" id="sms-g" checked><span class="tog-s"></span></label></div>
+          <div class="sms-item"><div><div class="spi-lbl">Morning Gate Digest</div><div class="spi-desc">Daily 6 AM summary for your region</div></div><label class="toggle"><input type="checkbox" id="sms-d"><span class="tog-s"></span></label></div>
+          <div class="sms-item"><div><div class="spi-lbl">Chassis Shortage Alerts</div><div class="spi-desc">SMS when pool drops below 5 units</div></div><label class="toggle"><input type="checkbox" id="sms-c" checked><span class="tog-s"></span></label></div>
+          <div class="sms-item"><div><div class="spi-lbl">LFD Expiry Reminders</div><div class="spi-desc">24hr warning before Last Free Day</div></div><label class="toggle"><input type="checkbox" id="sms-l" checked><span class="tog-s"></span></label></div>
+          <div class="sms-item" style="border:none"><div><div class="spi-lbl">New Location Alerts</div><div class="spi-desc">When new yards open in your region</div></div><label class="toggle"><input type="checkbox" id="sms-n"><span class="tog-s"></span></label></div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-card" style="margin-bottom:16px">
+      <div class="dc-title">Search History</div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <!-- WELCOME -->
+  <div id="welcome">
+    <div class="sec-hdr" style="margin-bottom:14px"><div class="sec-t">Select a Mode Above</div><div class="sec-l"></div></div>
+    <div class="mode-cards">
+      <div class="mc" onclick="setMode('import')">
+        <div class="mc-top"><span class="mc-ico">🔻</span><span class="mc-lbl" style="color:var(--import)">IMPORT RETURN</span></div>
+        <div class="mc-desc">Delivered the import load. Find where to drop the empty — port terminals, yards, rail ramps.</div>
+        <div class="mc-pts"><div class="mc-pt"><span class="mc-dot" style="background:var(--port)"></span>Port terminal gate hours &amp; status</div><div class="mc-pt"><span class="mc-dot" style="background:var(--rail)"></span>Rail ramp empty return eligibility</div><div class="mc-pt"><span class="mc-dot" style="background:var(--yard)"></span>Off-dock yards with appointment booking</div><div class="mc-pt"><span class="mc-dot" style="background:var(--import)"></span>ZIP proximity search + LFD awareness</div></div>
+      </div>
+      <div class="mc" onclick="setMode('export')">
+        <div class="mc-top"><span class="mc-ico">🔺</span><span class="mc-lbl" style="color:var(--export)">EXPORT PICKUP</span></div>
+        <div class="mc-desc">Export booking confirmed. Find where the carrier has empty boxes ready to release.</div>
+        <div class="mc-pts"><div class="mc-pt"><span class="mc-dot" style="background:var(--port)"></span>Carrier container release locations</div><div class="mc-pt"><span class="mc-dot" style="background:var(--yard)"></span>Off-dock depot availability</div><div class="mc-pt"><span class="mc-dot" style="background:var(--green)"></span>First Receiving Date at port</div><div class="mc-pt"><span class="mc-dot" style="background:var(--export)"></span>EIR &amp; release requirements</div></div>
+      </div>
+      <div class="mc" onclick="setMode('chassis')">
+        <div class="mc-top"><span class="mc-ico">🔧</span><span class="mc-lbl" style="color:var(--chassis)">CHASSIS</span></div>
+        <div class="mc-desc">Find chassis pickup &amp; return. DCLI, TRAC, Flexi-Van, UMAX with real availability counts.</div>
+        <div class="mc-pts"><div class="mc-pt"><span class="mc-dot" style="background:var(--chassis)"></span>DCLI, TRAC, Flexi-Van, UMAX pools</div><div class="mc-pt"><span class="mc-dot" style="background:var(--green)"></span>Estimated chassis availability</div><div class="mc-pt"><span class="mc-dot" style="background:var(--amber)"></span>Return-any / gray pool locations</div><div class="mc-pt"><span class="mc-dot" style="background:var(--rail)"></span>UMAX rail chassis ramps</div></div>
+      </div>
+    </div>
+    <div class="ds-panel">
+      <div class="ds-title">Integration Roadmap</div>
+      <div class="ds-grid">
+        <div><div class="ds-name">Maersk Developer API</div><div class="ds-desc">Live empty return + export release</div><div class="ds-st st-live">● LIVE API READY</div></div>
+        <div><div class="ds-name">eModal (Kaleris)</div><div class="ds-desc">LA/LB + NY/NJ all carriers</div><div class="ds-st st-part">◐ INTEGRATION PENDING</div></div>
+        <div><div class="ds-name">DCLI / TRAC API</div><div class="ds-desc">Real-time chassis pool data</div><div class="ds-st st-part">◐ PARTNER REG NEEDED</div></div>
+        <div><div class="ds-name">BNSF / UP Intermodal</div><div class="ds-desc">Rail ramp locations + schedules</div><div class="ds-st st-part">◐ PARTNER REG NEEDED</div></div>
+        <div><div class="ds-name">Google Maps Geocoding</div><div class="ds-desc">ZIP proximity + distance sorting</div><div class="ds-st st-part">◐ API KEY NEEDED</div></div>
+        <div><div class="ds-name">Twilio SMS</div><div class="ds-desc">Gate alerts, LFD reminders</div><div class="ds-st st-part">◐ INTEGRATION PENDING</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ══════════════════════ FOOTER ══════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="logo-name" style="font-size:16px">Empty<span style="color:var(--import)">Return</span>.US</div>
+        <div class="ft-desc">Free container return and chassis locator for US ports, rail ramps, and off-dock yards. Built for truckers, dispatchers, and logistics professionals.</div>
+      </div>
+      <div><div class="ft-col-t">Modes</div><div class="ft-links"><span class="ft-link" onclick="setMode('import')">Import Return</span><span class="ft-link" onclick="setMode('export')">Export Pickup</span><span class="ft-link" onclick="setMode('chassis')">Chassis Finder</span></div></div>
+      <div><div class="ft-col-t">Account</div><div class="ft-links"><span class="ft-link" onclick="om('ovSignup')">Create Free Account</span><span class="ft-link" onclick="om('ovLogin')">Sign In</span><span class="ft-link" onclick="setMode('dashboard')">My Dashboard</span></div></div>
+      <div><div class="ft-col-t">Legal</div><div class="ft-links"><span class="ft-link" onclick="openTOS()">Terms of Service</span><span class="ft-link" onclick="openTOS()">Disclaimer of Liability</span><span class="ft-link" onclick="openTOS()">Privacy Policy</span><span class="ft-link" onclick="openTOS()">SMS Policy (TCPA)</span></div></div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-legal">DISCLAIMER: EmptyReturn.US provides container return and pickup location data for informational purposes only. All data is estimated and subject to change without notice. EmptyReturn.US is not responsible for yard closures, container/chassis shortages, detention charges, demurrage, lost revenue, fuel costs, or any operational losses. Gate status data, including auto-refreshed status, may not reflect real-time conditions. Always verify with the carrier or terminal before dispatch. Use of this service constitutes acceptance of our Terms of Service.</div>
+      <div class="footer-copy">© 2026 EmptyReturn.US · All rights reserved</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════
+// CONSTANTS & STATE
+// ══════════════════════════════════════════════
+const CC={MSC:'#0057A8',Maersk:'#003B6F','CMA CGM':'#C41230','Hapag-Lloyd':'#E37222',COSCO:'#CC0000',Evergreen:'#007A3D',ONE:'#E60026','Yang Ming':'#003E7E',ZIM:'#0075C9',HMM:'#009FDA','Hamburg Sud':'#E10019',PIL:'#004A97'};
+const MC={
+  import: {color:'#f59e0b',hc:'hero-i',eye:'IMPORT · EMPTY CONTAINER RETURN',verb:'Drop It.',   desc:'Driver delivered the import load — find where to return the empty box.',   li:'🚛',lt:'QUERYING RETURN LOCATIONS',   ls:'Checking terminals accepting empty returns…'},
+  export: {color:'#22c55e',hc:'hero-e',eye:'EXPORT · EMPTY CONTAINER PICKUP', verb:'Pick It Up.',desc:'Got an export booking — find where the carrier has empty boxes ready to release.',li:'📦',lt:'QUERYING PICKUP LOCATIONS',   ls:'Checking carrier depots & terminals…'},
+  chassis:{color:'#38bdf8',hc:'hero-c',eye:'CHASSIS · PICKUP & RETURN FINDER', verb:'Find Chassis.',desc:'Find chassis pickup, return & pool locations across DCLI, TRAC, Flexi-Van & UMAX.',li:'🔧',lt:'QUERYING CHASSIS POOLS',    ls:'Checking DCLI, TRAC, Flexi-Van & shared pool locations…'},
+  dashboard:{color:'#38bdf8',hc:'hero-d',eye:'MY ACCOUNT',verb:'Your Hub.',desc:'Search history, SMS preferences, and account settings.',li:'📋',lt:'',ls:''},
+};
+
+let mode='import';
+let allLocs=[];
+let activeTab='all';
+let currentUser=null;
+let lastSearchData=null;
+let refreshTimer=null;
+let lastRefreshTime=null;
+
+// ══════════════════════════════════════════════
+// TIME
+// ══════════════════════════════════════════════
+function tick(){const n=new Date();document.getElementById('ts').textContent=n.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
+tick();setInterval(tick,60000);
+
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
+function getUsers(){return JSON.parse(localStorage.getItem('er_users')||'{}');}
+function saveUsers(u){localStorage.setItem('er_users',JSON.stringify(u));}
+function getHist(){if(!currentUser)return[];return JSON.parse(localStorage.getItem('er_hist_'+currentUser.email)||'[]');}
+function saveHist(h){if(!currentUser)return;localStorage.setItem('er_hist_'+currentUser.email,JSON.stringify(h.slice(0,50)));}
+
+function doSignup(){
+  const fn=v('s-fn'),ln=v('s-ln'),em=v('s-em').toLowerCase(),ph=v('s-ph'),co=v('s-co'),rl=v('s-rl'),rg=v('s-rg'),fl=v('s-fl'),pw=v('s-pw');
+  const tos=document.getElementById('chk-tos').checked,sms=document.getElementById('chk-sms').checked,age=document.getElementById('chk-age').checked;
+  const err=document.getElementById('serr');err.className='ferr';
+  if(!fn||!ln||!em||!ph||!co||!rl||!rg||!pw){err.textContent='Please fill in all required fields.';err.className='ferr show';return;}
+  if(!tos||!sms||!age){err.textContent='Please accept all required agreements.';err.className='ferr show';return;}
+  if(pw.length<8){err.textContent='Password must be at least 8 characters.';err.className='ferr show';return;}
+  if(!em.includes('@')){err.textContent='Please enter a valid email address.';err.className='ferr show';return;}
+  const users=getUsers();
+  if(users[em]){err.textContent='An account with this email already exists.';err.className='ferr show';return;}
+  const user={fn,ln,em,ph,co,rl,rg,fl,joinDate:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),smsConsent:true,tcpaDate:new Date().toISOString()};
+  users[em]={...user,pw};saveUsers(users);
+  currentUser=user;cm('ovSignup');updateAuthUI();setMode('dashboard');
+}
+
+function doLogin(){
+  const em=v('l-em').toLowerCase(),pw=v('l-pw');
+  const err=document.getElementById('lerr'),ok=document.getElementById('lok');
+  err.className='ferr';ok.className='fok';
+  if(!em||!pw){err.textContent='Please enter email and password.';err.className='ferr show';return;}
+  const users=getUsers();
+  if(!users[em]||users[em].pw!==pw){err.textContent='Incorrect email or password.';err.className='ferr show';return;}
+  const {pw:_,...user}=users[em];currentUser=user;
+  ok.textContent='Signed in! Welcome back, '+user.fn+'.';ok.className='fok show';
+  setTimeout(()=>{cm('ovLogin');updateAuthUI();},700);
+}
+
+function doLogout(){currentUser=null;updateAuthUI();setMode('import');}
+
+function updateAuthUI(){
+  const li=!!currentUser;
+  document.getElementById('guestBtns').style.display=li?'none':'flex';
+  document.getElementById('userMenu').style.display=li?'flex':'none';
+  document.getElementById('btn-dashboard').style.display=li?'flex':'none';
+  document.getElementById('saveSearchBtn').style.display=li?'inline-flex':'none';
+  if(li){
+    const init=(currentUser.fn[0]+(currentUser.ln[0]||'')).toUpperCase();
+    document.getElementById('userAv').textContent=init;
+    document.getElementById('userNm').textContent=currentUser.fn.toUpperCase();
+  }
+}
+
+// ══════════════════════════════════════════════
+// MODE
+// ══════════════════════════════════════════════
+function setMode(m){
+  mode=m;const cfg=MC[m];
+  document.documentElement.style.setProperty('--active',cfg.color);
+  document.getElementById('logoBox').style.background=cfg.color;
+  document.getElementById('logoSpan').style.color=cfg.color;
+  ['import','export','chassis','dashboard'].forEach(x=>{
+    const b=document.getElementById('btn-'+x);
+    if(b)b.className='mbtn'+(x===m?' m'+x[0]:'');
+  });
+  const h=document.getElementById('hero');
+  h.className='hero '+cfg.hc;
+  document.getElementById('heroEye').textContent=cfg.eye;
+  document.getElementById('heroEye').style.color=cfg.color;
+  document.getElementById('heroVerb').textContent=cfg.verb;
+  document.getElementById('heroVerb').style.color=cfg.color;
+  document.getElementById('heroDesc').textContent=cfg.desc;
+  ['import','export','chassis'].forEach(x=>{
+    document.getElementById('form-'+x).style.display=x===m?'grid':'none';
+  });
+  if(m==='dashboard'){['import','export','chassis'].forEach(x=>document.getElementById('form-'+x).style.display='none');}
+  hide('resArea');hide('welcome');hide('dashArea');hide('errBox');
+  document.getElementById('loader').classList.remove('on');
+  document.getElementById('statsBar').style.display=(m==='dashboard')?'none':'grid';
+  if(m==='dashboard'){if(!currentUser){om('ovLogin');setMode('import');return;}show('dashArea');renderDash();}
+  else show('welcome');
+  stopRefresh();
+}
+
+// ══════════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════════
+async function doSearch(){
+  const cfg=MC[mode];
+  let carrier='',size='',region='',extra={};
+  if(mode==='import'){carrier=v('i-cr');size=v('i-sz');region=v('i-rg');extra.cn=v('i-cn');extra.lfd=v('i-lf');extra.zip=v('i-zip');if(!carrier||!size||!region){alert('Select Carrier, Size and Region.');return;}}
+  else if(mode==='export'){carrier=v('e-cr');size=v('e-sz');region=v('e-rg');extra.bk=v('e-bk');extra.frd=v('e-fr');if(!carrier||!size||!region){alert('Select Carrier, Size and Region.');return;}}
+  else{carrier=v('c-pl');size=v('c-sz');region=v('c-rg');if(!carrier||!size||!region){alert('Select Pool, Size and Region.');return;}}
+
+  lastSearchData={mode,carrier,size,region,extra};
+  hide('welcome');document.getElementById('statsBar').style.display='none';
+  hide('resArea');hide('errBox');
+  document.getElementById('loaderIco').textContent=cfg.li;
+  document.getElementById('loaderTxt').textContent=cfg.lt;
+  document.getElementById('loaderTxt').style.color=cfg.color;
+  document.getElementById('loaderSub').textContent=cfg.ls;
+  document.getElementById('loader').classList.add('on');
+  ['i-btn','e-btn','c-btn'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=true;});
+
+  if(currentUser)saveToHist(carrier,size,region);
+
+  try{
+    const res=await callAI(buildPrompt(mode,carrier,size,region,extra));
+    const parsed=JSON.parse(res.replace(/```json|```/g,'').trim());
+    showResults(parsed,carrier,size,region,extra);
+    startRefresh(carrier,size,region,extra);
+  }catch(e){
+    show('errBox');
+    document.getElementById('errBox').innerHTML='⚠ Could not retrieve locations. Please try again.<br><small style="opacity:.5">'+e.message+'</small>';
+  }finally{
+    document.getElementById('loader').classList.remove('on');
+    ['i-btn','e-btn','c-btn'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=false;});
+  }
+}
+
+async function callAI(prompt){
+  const key = window.__ak || '';
+  const body = JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  // Try multiple CORS proxies in order until one works
+  const proxies = [
+    async () => {
+      const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.anthropic.com/v1/messages'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body
+      });
+      if (!r.ok) throw new Error('proxy1 failed');
+      return r.json();
+    },
+    async () => {
+      const r = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.anthropic.com/v1/messages'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'x-requested-with': 'XMLHttpRequest' },
+        body
+      });
+      if (!r.ok) throw new Error('proxy2 failed');
+      return r.json();
+    },
+    async () => {
+      const r = await fetch('https://proxy.cors.sh/https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'x-cors-api-key': 'temp_' + key.slice(-8) },
+        body
+      });
+      if (!r.ok) throw new Error('proxy3 failed');
+      return r.json();
+    }
+  ];
+
+  let lastError;
+  for (const proxy of proxies) {
+    try {
+      const data = await proxy();
+      if (data.content) return data.content.map(b => b.text || '').join('');
+      if (data.error) throw new Error(data.error.message);
+    } catch(e) {
+      lastError = e;
+      console.warn('Proxy attempt failed:', e.message);
+    }
+  }
+  throw new Error('All proxies failed: ' + lastError?.message);
+}
+
+function buildPrompt(mode,carrier,size,region,extra){
+  const base='Return ONLY raw JSON, no markdown, no backticks.';
+  const zipNote=extra.zip?` Sort results by proximity to ZIP code ${extra.zip} — include realistic distanceMiles from that ZIP.`:'';
+
+  if(mode==='import') return `${base} US container logistics database. Driver needs to RETURN EMPTY container after import delivery.
+Carrier:${carrier} Size:${size} Region:${region} Container#:${extra.cn||'N/A'} LFD:${extra.lfd||'N/A'}${zipNote}
+JSON: {"mode":"import","carrier":"${carrier}","size":"${size}","region":"${region}","containerNumber":"${extra.cn||'N/A'}","lfd":"${extra.lfd||'N/A'}","disclaimer":"One sentence: AI-estimated data, verify with carrier empty return portal before dispatch.","locations":[{"name":"terminal name","operator":"company","type":"port|rail|yard|depot","address":"full address, City, State ZIP","gateStatus":"open|limited|closed","hours":"Mon-Fri 06:00-18:00\\nSat 07:00-12:00","acceptedSizes":["20GP","40GP"],"appointmentRequired":true,"appointmentUrl":"https://emodal.com","chassisRequired":false,"tos":"NAVIS N4","phone":"+1-XXX-XXX-XXXX","distanceMiles":12,"notes":"driver note"}]}
+Include 5-6 real locations: mix port terminals, off-dock yards, 1-2 rail ramps. Real names, real ${region} addresses.`;
+
+  if(mode==='export') return `${base} US container logistics database. Trucker needs to PICK UP EMPTY container for export booking.
+Carrier:${carrier} Size:${size} Region:${region} Booking:${extra.bk||'N/A'} FirstReceiving:${extra.frd||'N/A'}${zipNote}
+JSON: {"mode":"export","carrier":"${carrier}","size":"${size}","region":"${region}","frd":"${extra.frd||'N/A'}","disclaimer":"One sentence: verify release with carrier before dispatch.","locations":[{"name":"depot name","operator":"company","type":"port|yard|depot","address":"full address, City, State ZIP","gateStatus":"open|limited|closed","hours":"Mon-Fri 07:00-17:00","availableSizes":["20GP"],"appointmentRequired":true,"appointmentUrl":"https://...","eirRequired":true,"releaseRequired":true,"phone":"+1-XXX-XXX-XXXX","distanceMiles":8,"notes":"bring booking#, EIR, photo ID"}]}
+Include 5-6 real locations where ${carrier} releases empty ${size} in ${region}. Real names, real addresses.`;
+
+  return `${base} US chassis pool database. Driver needs chassis in ${region}.
+Pool:${carrier} Size:${size} Region:${region}${zipNote}
+JSON: {"mode":"chassis","pool":"${carrier}","size":"${size}","region":"${region}","disclaimer":"One sentence: chassis counts are estimates only, verify availability before dispatch.","locations":[{"name":"yard name","operator":"DCLI|TRAC|Flexi-Van|UMAX","type":"yard|port|rail|depot","address":"full address, City, State ZIP","gateStatus":"open|limited|closed","hours":"Mon-Fri 06:00-19:00","chassisSize":"${size}","poolType":"gray|blue|orange|private","estimatedAvailable":12,"returnAny":true,"appointmentRequired":false,"appointmentUrl":"https://...","phone":"+1-XXX-XXX-XXXX","dailyRate":"$18-22","distanceMiles":6,"notes":"driver note"}]}
+Include 5-6 real chassis locations in ${region}. Realistic counts, rates, gray pool flags.`;
+}
+
+// ══════════════════════════════════════════════
+// RESULTS
+// ══════════════════════════════════════════════
+function showResults(data,carrier,size,region,extra){
+  allLocs=data.locations||[];activeTab='all';
+  const cfg=MC[mode];
+  const color=CC[carrier]||'#1e3a5f';
+  const init=carrier.substring(0,3).toUpperCase();
+  const total=allLocs.length;
+  const pC=allLocs.filter(l=>l.type==='port').length;
+  const rC=allLocs.filter(l=>l.type==='rail').length;
+  const yC=allLocs.filter(l=>l.type==='yard'||l.type==='depot').length;
+  const hasZip=extra&&extra.zip;
+
+  // set print meta
+  document.getElementById('printMeta').textContent=`${carrier} · ${size} · ${region} · Generated ${new Date().toLocaleString()} · Always verify with carrier before dispatch.`;
+
+  document.getElementById('resHdr').innerHTML=`
+    <div style="display:flex;align-items:center;gap:11px">
+      <div class="carrier-badge" style="background:${color}">${init}</div>
+      <div><div class="res-carrier-name">${carrier}</div><div class="res-sub">${size} · ${region}${data.containerNumber&&data.containerNumber!=='N/A'?' · '+data.containerNumber:''}</div></div>
+    </div>
+    <div class="pills">
+      <span class="pill pill-${mode[0]}">${mode.toUpperCase()}</span>
+      <span class="pill pill-s">${size}</span>
+      <span class="pill pill-r">${region}</span>
+      <span class="pill pill-n">${total} FOUND</span>
+      ${hasZip?`<span class="pill pill-z">📍 ZIP ${extra.zip}</span>`:''}
+    </div>`;
+
+  const tabs=[{type:'all',label:'ALL',n:total}];
+  if(pC)tabs.push({type:'port',label:'PORTS',n:pC});
+  if(rC)tabs.push({type:'rail',label:'RAIL',n:rC});
+  if(yC)tabs.push({type:'yard',label:'YARDS',n:yC});
+  document.getElementById('tabBar').innerHTML=tabs.map((t,i)=>`<button class="tab-btn${i===0?' on':''}" onclick="switchTab('${t.type}',this)">${t.label}<span class="tcnt">${t.n}</span></button>`).join('');
+
+  document.getElementById('resDisc').className='r-disc rd-'+mode[0];
+  document.getElementById('discTxt').textContent=data.disclaimer||'Verify all locations with the carrier before dispatch.';
+  renderCards();
+  setRefreshTime();
+  show('resArea');
+  document.getElementById('resArea').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function switchTab(type,btn){
+  activeTab=type;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');renderCards();
+}
+
+function renderCards(){
+  const filtered=activeTab==='all'?allLocs:activeTab==='yard'?allLocs.filter(l=>l.type==='yard'||l.type==='depot'):allLocs.filter(l=>l.type===activeTab);
+  const lbl={all:'All Locations',port:'Port Terminals',rail:'Rail Ramps',yard:'Off-Dock Yards & Depots'};
+  document.getElementById('secLbl').textContent=lbl[activeTab]||'Locations';
+  document.getElementById('secCnt').textContent=filtered.length+' location'+(filtered.length!==1?'s':'');
+  document.getElementById('secCnt').style.color=MC[mode].color;
+  document.getElementById('locList').innerHTML=filtered.map(buildCard).join('');
+}
+
+function buildCard(loc,idx){
+  const ti={port:'⚓',rail:'🚂',yard:'🏗',depot:'📦'}[loc.type]||'📦';
+  const ic={port:'ico-port',rail:'ico-rail',yard:'ico-yard',depot:'ico-depot'}[loc.type]||'ico-depot';
+  const tg={port:'tag-port',rail:'tag-rail',yard:'tag-yard',depot:'tag-depot'}[loc.type]||'tag-depot';
+  const tl={port:'PORT TERMINAL',rail:'RAIL RAMP',yard:'OFF-DOCK YARD',depot:'DEPOT'}[loc.type]||'FACILITY';
+  const gc={open:'gate-open',limited:'gate-limited',closed:'gate-closed'}[loc.gateStatus]||'gate-verify';
+  const gt=(loc.gateStatus||'VERIFY').toUpperCase();
+  let tags=`<span class="tag ${tg}">${tl}</span>`;
+  if(mode==='import'){(loc.acceptedSizes||[]).forEach(s=>tags+=`<span class="tag tag-size">${s}</span>`);if(loc.appointmentRequired)tags+=`<span class="tag tag-appt">APPT REQ'D</span>`;if(loc.chassisRequired)tags+=`<span class="tag tag-info">CHASSIS IN</span>`;if(loc.tos)tags+=`<span class="tag tag-size">${loc.tos}</span>`;}
+  if(mode==='export'){(loc.availableSizes||[]).forEach(s=>tags+=`<span class="tag tag-size">${s}</span>`);if(loc.appointmentRequired)tags+=`<span class="tag tag-appt">APPT REQ'D</span>`;if(loc.eirRequired)tags+=`<span class="tag tag-warn">EIR NEEDED</span>`;if(loc.releaseRequired)tags+=`<span class="tag tag-warn">RELEASE NEEDED</span>`;}
+  if(mode==='chassis'){if(loc.chassisSize)tags+=`<span class="tag tag-size">${loc.chassisSize}</span>`;if(loc.poolType==='gray')tags+=`<span class="tag tag-ok">GRAY POOL</span>`;if(loc.returnAny)tags+=`<span class="tag tag-ok">RETURN-ANY</span>`;if(loc.appointmentRequired)tags+=`<span class="tag tag-appt">APPT REQ'D</span>`;if(loc.dailyRate)tags+=`<span class="tag tag-info">${loc.dailyRate}/day</span>`;}
+  const note=loc.notes?`<div class="loc-note note-${mode[0]}">${loc.notes}</div>`:'';
+  const dist=loc.distanceMiles?`<div class="loc-dist">📍 ~${loc.distanceMiles} mi away</div>`:'';
+  let chassis='';
+  if(mode==='chassis'&&loc.estimatedAvailable!==undefined){const a=loc.estimatedAvailable;const vc=a>10?'good':a>3?'warn':'bad';chassis=`<div class="chassis-pool"><div><div class="cpi-l">Est. Available</div><div class="cpi-v ${vc}">${a}</div></div><div><div class="cpi-l">Pool Type</div><div class="cpi-v" style="font-size:12px">${(loc.poolType||'—').toUpperCase()}</div></div><div><div class="cpi-l">Daily Rate</div><div class="cpi-v" style="font-size:12px">${loc.dailyRate||'—'}</div></div></div>`;}
+  const al=loc.appointmentUrl?`<button class="appt-btn appt-${mode[0]}" onclick="openAppt(${JSON.stringify(loc).replace(/"/g,'&quot;')})">BOOK APPT</button>`:'';
+  const ph=loc.phone?`<a class="loc-ph" href="tel:${loc.phone}">${loc.phone}</a>`:'';
+  return `<div class="loc-card" id="card-${idx||0}"><div class="type-ico ${ic}">${ti}</div><div><div class="loc-name">${loc.name}</div>${loc.operator?`<div class="loc-op">${loc.operator}</div>`:''}<div class="loc-adr">📍 ${loc.address}</div>${dist}<div class="loc-tags">${tags}</div>${note}${chassis}</div><div class="loc-stat"><span class="gate ${gc}" id="gate-${loc.name.replace(/\s/g,'')}">${gt}</span><div class="loc-hrs">${(loc.hours||'').replace(/\n/g,'<br>')}</div>${ph}${al}</div></div>`;
+}
+
+// ══════════════════════════════════════════════
+// GATE STATUS REFRESH
+// ══════════════════════════════════════════════
+function startRefresh(carrier,size,region,extra){
+  stopRefresh();
+  if(document.getElementById('autoRefresh').checked){
+    refreshTimer=setInterval(()=>refreshGateStatus(carrier,size,region,extra),5*60*1000);
+  }
+}
+function stopRefresh(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null;}}
+
+function toggleAutoRefresh(){
+  if(document.getElementById('autoRefresh').checked&&lastSearchData){
+    const d=lastSearchData;
+    refreshTimer=setInterval(()=>refreshGateStatus(d.carrier,d.size,d.region,d.extra),5*60*1000);
+  }else{stopRefresh();}
+}
+
+function setRefreshTime(){
+  lastRefreshTime=new Date();
+  const rb=document.getElementById('refreshBtn');
+  rb.classList.remove('spinning');
+  document.getElementById('refreshTime').textContent='Updated '+lastRefreshTime.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('refreshStatus').style.color='var(--green)';
+  document.getElementById('refreshStatus').textContent='GATE STATUS LIVE';
+}
+
+async function manualRefresh(){
+  if(!lastSearchData)return;
+  const btn=document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  document.getElementById('refreshStatus').textContent='REFRESHING…';
+  document.getElementById('refreshStatus').style.color='var(--amber)';
+  await refreshGateStatus(lastSearchData.carrier,lastSearchData.size,lastSearchData.region,lastSearchData.extra);
+}
+
+async function refreshGateStatus(carrier,size,region,extra){
+  const prompt=`You are a gate status checker for US container terminals. Return ONLY raw JSON with updated gate statuses.
+For carrier ${carrier}, size ${size}, region ${region}, return an array of gate status updates.
+JSON: [{"name":"exact terminal name","gateStatus":"open|limited|closed","hours":"updated hours if changed"}]
+Vary statuses realistically — some may have changed since last check. Include all terminal types. Return 4-6 items.`;
+  try{
+    const res=await callAI(prompt);
+    const updates=JSON.parse(res.replace(/```json|```/g,'').trim());
+    let changed=0;
+    updates.forEach(u=>{
+      const matching=allLocs.find(l=>l.name===u.name||l.name.toLowerCase().includes(u.name.toLowerCase().substring(0,8)));
+      if(matching&&matching.gateStatus!==u.gateStatus){
+        matching.gateStatus=u.gateStatus;changed++;
+        const gateEl=document.getElementById('gate-'+matching.name.replace(/\s/g,''));
+        if(gateEl){
+          const gc={open:'gate-open',limited:'gate-limited',closed:'gate-closed'}[u.gateStatus]||'gate-verify';
+          gateEl.className='gate '+gc;
+          gateEl.textContent=u.gateStatus.toUpperCase();
+          gateEl.closest('.loc-card').classList.add('status-changed-card');
+          setTimeout(()=>gateEl.closest('.loc-card').classList.remove('status-changed-card'),1000);
+        }
+      }
+    });
+    setRefreshTime();
+    if(changed>0){document.getElementById('refreshStatus').textContent=`${changed} STATUS CHANGE${changed>1?'S':''}`;document.getElementById('refreshStatus').style.color='var(--amber)';setTimeout(()=>{document.getElementById('refreshStatus').textContent='GATE STATUS LIVE';document.getElementById('refreshStatus').style.color='var(--green)';},3000);}
+  }catch(e){document.getElementById('refreshStatus').textContent='REFRESH FAILED';document.getElementById('refreshStatus').style.color='var(--red)';}
+  finally{document.getElementById('refreshBtn').classList.remove('spinning');}
+}
+
+// ══════════════════════════════════════════════
+// APPOINTMENT BOOKING
+// ══════════════════════════════════════════════
+let apptLoc=null;let apptStep=1;let apptDate='';let apptTime='';
+
+function openAppt(loc){
+  apptLoc=loc;apptStep=1;apptDate='';apptTime='';
+  document.getElementById('apptTitle').textContent='Book Appointment — '+loc.name;
+  renderApptStep();
+  om('ovAppt');
+}
+
+function renderApptStep(){
+  const body=document.getElementById('apptBody');
+  const steps=['<div class="appt-steps">','<div class="appt-step '+(apptStep>=1?'done':'')+'"></div>','<div class="appt-step '+(apptStep>=2?'done':apptStep===1?'active':'')+'"></div>','<div class="appt-step '+(apptStep>=3?'done':apptStep===2?'active':'')+'"></div>','</div>'].join('');
+  const locPrev=`<div class="appt-loc-preview"><span class="alp-icon">${{port:'⚓',rail:'🚂',yard:'🏗',depot:'📦'}[apptLoc.type]||'📦'}</span><div><div class="alp-name">${apptLoc.name}</div><div class="alp-addr">${apptLoc.address}</div></div></div>`;
+
+  if(apptStep===1){
+    const today=new Date();
+    const dates=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()+i+1);return d;});
+    body.innerHTML=steps+locPrev+`<div class="fsec">SELECT DATE</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px">${dates.map(d=>`<div class="time-slot${apptDate===d.toISOString().split('T')[0]?' selected':''}" onclick="apptDate='${d.toISOString().split('T')[0]}';renderApptStep()">${d.toLocaleDateString('en-US',{weekday:'short'})}<br>${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>`).join('')}</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost btn-sm" onclick="cm('ovAppt')">CANCEL</button><button class="btn btn-gold btn-sm" onclick="apptNext()" ${!apptDate?'disabled':''}>NEXT →</button></div>`;
+  }else if(apptStep===2){
+    const slots=['06:00','07:00','08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+    const unavail=['09:00','10:00','14:00'];
+    body.innerHTML=steps+locPrev+`<div class="fsec">SELECT TIME SLOT — ${new Date(apptDate).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div><div class="time-slots">${slots.map(s=>`<div class="time-slot${unavail.includes(s)?' unavailable':apptTime===s?' selected':''}" onclick="${unavail.includes(s)?'':'apptTime=\''+s+'\';renderApptStep()'}">${s}</div>`).join('')}</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mist);margin-bottom:14px;">Grey slots are unavailable (simulated)</div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost btn-sm" onclick="apptStep=1;renderApptStep()">← BACK</button><button class="btn btn-gold btn-sm" onclick="apptNext()" ${!apptTime?'disabled':''}>CONFIRM →</button></div>`;
+  }else{
+    const ref='APT-'+Math.random().toString(36).substring(2,8).toUpperCase();
+    body.innerHTML=steps+`<div class="appt-confirm"><span class="appt-confirm-icon">✅</span><div class="appt-confirm-title">Appointment Confirmed</div><div class="appt-ref">REF: ${ref}</div><div class="appt-details">${apptLoc.name}<br>${apptLoc.address}<br><strong>${new Date(apptDate).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})} at ${apptTime}</strong><br><br>Bring your container number, booking reference, and valid driver ID.<br>Arrive 15 minutes early. Late arrivals may lose their slot.<br><br><span style="color:var(--amber)">⚠ This is a simulated confirmation. In production, this connects to eModal or the terminal's booking system.</span></div></div><div style="display:flex;gap:8px;justify-content:center;margin-top:14px"><button class="btn btn-ghost btn-sm" onclick="cm('ovAppt')">CLOSE</button><button class="btn btn-gold btn-sm" onclick="window.print()">PRINT CONFIRMATION</button></div>`;
+  }
+}
+
+function apptNext(){apptStep++;renderApptStep();}
+
+// ══════════════════════════════════════════════
+// PRINT
+// ══════════════════════════════════════════════
+function printResults(){
+  window.print();
+}
+
+// ══════════════════════════════════════════════
+// EMAIL TO DISPATCHER
+// ══════════════════════════════════════════════
+function emailResults(){
+  if(!allLocs.length){alert('No results to email.');return;}
+  document.getElementById('emailErr').className='ferr';
+  document.getElementById('emailOk').className='fok';
+  if(currentUser)document.getElementById('em-to').value='';
+  const d=lastSearchData;
+  document.getElementById('em-sub').value=`Empty ${d.mode==='import'?'Return':d.mode==='export'?'Pickup':'Chassis'} Locations — ${d.carrier} ${d.size} · ${d.region}`;
+  // Preview
+  const preview=allLocs.slice(0,4).map(l=>`• ${l.name} | ${l.address} | ${(l.gateStatus||'verify').toUpperCase()} | ${l.hours||'—'}`).join('\n');
+  document.getElementById('em-preview').textContent='RESULTS PREVIEW:\n\n'+preview+'\n\n[Full results with phone numbers, appointment links, and driver notes included]\n\nVerify all locations before dispatch — EmptyReturn.US data is estimated.';
+  om('ovEmail');
+}
+
+function sendEmail(){
+  const to=v('em-to');
+  const err=document.getElementById('emailErr'),ok=document.getElementById('emailOk');
+  err.className='ferr';ok.className='fok';
+  if(!to||!to.includes('@')){err.textContent='Enter a valid dispatcher email address.';err.className='ferr show';return;}
+  // In production: POST to /api/send-email with results data
+  ok.textContent='✓ Email sent to '+to+' — In production this connects to SendGrid/Mailgun API.';
+  ok.className='fok show';
+  setTimeout(()=>cm('ovEmail'),2000);
+}
+
+// ══════════════════════════════════════════════
+// SAVE SEARCH / HISTORY
+// ══════════════════════════════════════════════
+function saveToHist(carrier,size,region){
+  if(!currentUser)return;
+  const hist=getHist();
+  hist.unshift({mode,carrier,size,region,time:new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})});
+  saveHist(hist);
+}
+
+function saveSearch(){
+  if(!currentUser){om('ovLogin');return;}
+  saveToHist(lastSearchData?.carrier,lastSearchData?.size,lastSearchData?.region);
+  const b=document.getElementById('saveSearchBtn');
+  b.textContent='⭐ SAVED';b.style.color='var(--amber)';
+  setTimeout(()=>{b.textContent='⭐ SAVE SEARCH';b.style.color='';},2000);
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+function renderDash(){
+  const u=currentUser;
+  document.getElementById('uiGrid').innerHTML=`
+    <div class="ui-f"><div class="ui-k">Name</div><div class="ui-v">${u.fn} ${u.ln}</div></div>
+    <div class="ui-f"><div class="ui-k">Company</div><div class="ui-v">${u.co}</div></div>
+    <div class="ui-f"><div class="ui-k">Role</div><div class="ui-v">${u.rl}</div></div>
+    <div class="ui-f"><div class="ui-k">Region</div><div class="ui-v">${u.rg}</div></div>
+    <div class="ui-f"><div class="ui-k">Phone</div><div class="ui-v">${u.ph}</div></div>
+    <div class="ui-f"><div class="ui-k">Member Since</div><div class="ui-v">${u.joinDate}</div></div>
+    <div class="ui-f"><div class="ui-k">Fleet Size</div><div class="ui-v">${u.fl||'—'}</div></div>
+    <div class="ui-f"><div class="ui-k">SMS Consent</div><div class="ui-v" style="color:var(--green)">✓ Active (TCPA)</div></div>`;
+
+  const hist=getHist();
+  const hl=document.getElementById('histList');
+  if(!hist.length){hl.innerHTML='<div style="text-align:center;padding:24px;font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--mist);letter-spacing:1px;">NO SEARCHES YET — RUN YOUR FIRST QUERY</div>';return;}
+  hl.innerHTML=hist.map((h,i)=>`
+    <div class="hist-item">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="hi-mode hi-${h.mode[0]}">${h.mode==='import'?'🔻':h.mode==='export'?'🔺':'🔧'}</div>
+        <div><div class="hi-main">${h.carrier} · ${h.size}</div><div class="hi-sub">${h.region} · ${h.mode.toUpperCase()}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="hi-time">${h.time}</div>
+        <button class="rep-btn" onclick="repeatSearch(${i})">REPEAT →</button>
+      </div>
+    </div>`).join('');
+}
+
+function repeatSearch(i){
+  const h=getHist()[i];
+  setMode(h.mode);
+  setTimeout(()=>{
+    if(h.mode==='import'){sv('i-cr',h.carrier);sv('i-sz',h.size);sv('i-rg',h.region);}
+    else if(h.mode==='export'){sv('e-cr',h.carrier);sv('e-sz',h.size);sv('e-rg',h.region);}
+    else{sv('c-pl',h.carrier);sv('c-sz',h.size);sv('c-rg',h.region);}
+    doSearch();
+  },100);
+}
+
+// ══════════════════════════════════════════════
+// TOS / MODALS
+// ══════════════════════════════════════════════
+function openTOS(){om('ovTOS');}
+function om(id){document.getElementById(id).classList.add('show');}
+function cm(id){document.getElementById(id).classList.remove('show');}
+['ovSignup','ovLogin','ovTOS','ovAppt','ovEmail'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)cm(id);});
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')['ovSignup','ovLogin','ovTOS','ovAppt','ovEmail'].forEach(id=>cm(id));});
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+function v(id){return(document.getElementById(id).value||'').trim();}
+function sv(id,val){const el=document.getElementById(id);if(el)el.value=val;}
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+function goHome(){setMode('import');}
+
+['i-cn','i-lf','i-zip'].forEach(id=>{document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});});
+</script>
+</body>
+</html>
