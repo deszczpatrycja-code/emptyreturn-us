@@ -10,13 +10,20 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
-  if (req.method !== 'POST' || req.url !== '/search') { res.writeHead(404); res.end('Not found'); return; }
+
+  if (req.method !== 'POST' || req.url !== '/search') {
+    res.writeHead(404);
+    res.end(JSON.stringify({ error: 'Not found' }));
+    return;
+  }
 
   let body = '';
   req.on('data', chunk => body += chunk);
   req.on('end', () => {
     try {
-      const { prompt } = JSON.parse(body);
+      const parsed = JSON.parse(body);
+      const prompt = parsed.prompt || parsed.messages?.[0]?.content || '';
+
       const payload = JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -44,10 +51,18 @@ const server = http.createServer((req, res) => {
         });
       });
 
-      apiReq.on('error', (e) => { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); });
+      apiReq.on('error', (e) => {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: e.message }));
+      });
+
       apiReq.write(payload);
       apiReq.end();
-    } catch(e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+
+    } catch(e) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: 'Bad request: ' + e.message }));
+    }
   });
 });
 
