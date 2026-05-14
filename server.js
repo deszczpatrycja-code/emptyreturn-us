@@ -45,7 +45,7 @@ async function fetchMaerskLocations(region) {
     const results = [];
 
     // Fetch terminals
-    const termUrl = `https://api.maersk.com/reference-data/locations?cityName=${encodeURIComponent(city)}|contains&countryCode=US&locationType=TERMINAL&limit=50`;
+    const termUrl = `https://api.maersk.com/reference-data/locations?cityName=${encodeURIComponent(city)}&countryCode=US&locationType=TERMINAL&limit=50`;
     console.log('Calling Maersk terminals:', termUrl);
     const termRes = await httpsGet(termUrl, {
       'Consumer-Key': MAERSK_KEY,
@@ -63,7 +63,7 @@ async function fetchMaerskLocations(region) {
     }
 
     // Fetch depots
-    const depUrl = `https://api.maersk.com/reference-data/locations?cityName=${encodeURIComponent(city)}|contains&countryCode=US&locationType=DEPOT&limit=50`;
+    const depUrl = `https://api.maersk.com/reference-data/locations?cityName=${encodeURIComponent(city)}&countryCode=US&locationType=DEPOT&limit=50`;
     console.log('Calling Maersk depots:', depUrl);
     const depRes = await httpsGet(depUrl, {
       'Consumer-Key': MAERSK_KEY,
