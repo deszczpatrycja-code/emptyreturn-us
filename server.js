@@ -3,14 +3,16 @@ const https = require('https');
 
 const KEY = process.env.ANTHROPIC_KEY;
 const MAERSK_KEY = process.env.MAERSK_KEY;
+const TERMINAL49_KEY = process.env.TERMINAL49_KEY;
 const PORT = process.env.PORT || 8080;
 
 console.log('Starting server on port:', PORT);
 console.log('Anthropic Key present:', !!KEY);
 console.log('Maersk Key present:', !!MAERSK_KEY);
+console.log('Terminal49 Key present:', !!TERMINAL49_KEY);
 
 // =====================================================
-// BNSF / UP RAIL RAMPS - Static curated database
+// BNSF / UP / CSX / NS RAIL RAMPS - Static curated database
 // =====================================================
 const RAIL_RAMPS = {
   'Chicago, IL (BNSF/UP)': [
@@ -102,14 +104,71 @@ async function fetchMaerskLocations(region) {
   }
 }
 
+// Fetch Terminal49 port/terminal data
+async function fetchTerminal49Ports(region) {
+  if (!TERMINAL49_KEY) return null;
+  try {
+    // Terminal49 has a /ports endpoint that lists supported ports
+    // and a /terminals endpoint for terminal details
+    const cityMap = {
+      'LA/Long Beach': 'Los Angeles',
+      'New York/New Jersey': 'New York',
+      'Savannah': 'Savannah',
+      'Seattle/Tacoma': 'Seattle',
+      'Houston': 'Houston',
+      'Charleston': 'Charleston',
+      'Norfolk': 'Norfolk',
+      'Baltimore': 'Baltimore',
+      'Oakland': 'Oakland',
+      'Miami': 'Miami',
+    };
+    const city = cityMap[region] || region.split('/')[0].trim();
+
+    const url = `https://api.terminal49.com/v2/terminals?filter[country_code]=US`;
+    const r = await httpsGet(url, {
+      'Authorization': `Token ${TERMINAL49_KEY}`,
+      'Content-Type': 'application/vnd.api+json',
+      'Accept': 'application/vnd.api+json'
+    });
+    console.log('Terminal49 status:', r.status);
+    if (r.status === 200) {
+      try {
+        const parsed = JSON.parse(r.body);
+        const allTerminals = parsed.data || [];
+        // Filter by city name match
+        const filtered = allTerminals.filter(t => {
+          const name = (t.attributes?.name || '').toLowerCase();
+          const cityLower = city.toLowerCase();
+          return name.includes(cityLower) || cityLower.split(' ').some(w => name.includes(w));
+        });
+        return filtered.length > 0 ? filtered : allTerminals.slice(0, 10);
+      } catch(e) {
+        console.log('T49 parse error:', e.message);
+        return null;
+      }
+    }
+    console.log('T49 response:', r.body.substring(0, 200));
+    return null;
+  } catch(e) {
+    console.error('Terminal49 error:', e.message);
+    return null;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'GET' && !req.url.startsWith('/maersk-locations') && !req.url.startsWith('/rail-ramps')) {
+  if (req.method === 'GET' && req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', anthropic: !!KEY, maersk: !!MAERSK_KEY, rail_regions: Object.keys(RAIL_RAMPS).length }));
+    res.end(JSON.stringify({
+      status: 'ok',
+      anthropic: !!KEY,
+      maersk: !!MAERSK_KEY,
+      terminal49: !!TERMINAL49_KEY,
+      rail_regions: Object.keys(RAIL_RAMPS).length
+    }));
     return;
   }
 
@@ -119,6 +178,15 @@ const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
     const region = u.searchParams.get('region') || 'LA/Long Beach';
     const data = await fetchMaerskLocations(region);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ region, count: data ? data.length : 0, data: data || null }));
+    return;
+  }
+
+  if (req.url.startsWith('/terminal49-test')) {
+    const u = new URL(req.url, 'http://x');
+    const region = u.searchParams.get('region') || 'LA/Long Beach';
+    const data = await fetchTerminal49Ports(region);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ region, count: data ? data.length : 0, data: data || null }));
     return;
@@ -143,19 +211,32 @@ const server = http.createServer(async (req, res) => {
       let enhancedPrompt = prompt;
       const realDataParts = [];
 
-      // Inject Maersk data if it's a Maersk search
+      // Maersk
       if ((prompt.includes('Maersk') || prompt.includes('Hamburg Sud')) && MAERSK_KEY) {
         const regionMatch = prompt.match(/Region:([^\n]+?)(?:\s+Container|\s+Booking|\s*$)/);
         if (regionMatch) {
           const region = regionMatch[1].trim();
-          const maerskData = await fetchMaerskLocations(region);
-          if (maerskData && maerskData.length > 0) {
-            realDataParts.push(`MAERSK REAL LIVE DATA (${maerskData.length} locations): ${JSON.stringify(maerskData.slice(0, 8)).substring(0, 3500)}`);
+          const data = await fetchMaerskLocations(region);
+          if (data && data.length > 0) {
+            realDataParts.push(`MAERSK REAL LIVE DATA (${data.length} locations): ${JSON.stringify(data.slice(0, 8)).substring(0, 3000)}`);
           }
         }
       }
 
-      // Inject BNSF/UP rail ramp data for midwest regions
+      // Terminal49 (covers MSC, CMA CGM, COSCO, Evergreen, ONE, etc at major ports)
+      const t49Carriers = ['MSC', 'CMA CGM', 'COSCO', 'Evergreen', 'ONE', 'Hapag-Lloyd', 'ZIM', 'Yang Ming', 'HMM'];
+      if (TERMINAL49_KEY && t49Carriers.some(c => prompt.includes(c))) {
+        const regionMatch = prompt.match(/Region:([^\n]+?)(?:\s+Container|\s+Booking|\s*$)/);
+        if (regionMatch) {
+          const region = regionMatch[1].trim();
+          const data = await fetchTerminal49Ports(region);
+          if (data && data.length > 0) {
+            realDataParts.push(`TERMINAL49 REAL TERMINAL DATA (${data.length} terminals): ${JSON.stringify(data.slice(0, 8)).substring(0, 2500)}`);
+          }
+        }
+      }
+
+      // Rail ramps for midwest
       const railRegionMatch = prompt.match(/Region:(Chicago|Memphis|Kansas City|Dallas\/Fort Worth|St\. Louis|Cincinnati|Columbus|Detroit|Minneapolis|Denver|Indianapolis|Louisville)[^\n]*?(?:\s+Container|\s+Booking|\s*$)/);
       if (railRegionMatch) {
         const matchedKey = Object.keys(RAIL_RAMPS).find(k => k.toLowerCase().startsWith(railRegionMatch[1].toLowerCase()));
