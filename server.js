@@ -4,15 +4,17 @@ const https = require('https');
 const KEY = process.env.ANTHROPIC_KEY;
 const MAERSK_KEY = process.env.MAERSK_KEY;
 const TERMINAL49_KEY = process.env.TERMINAL49_KEY;
+const DCLI_KEY = process.env.DCLI_KEY;
 const PORT = process.env.PORT || 8080;
 
 console.log('Starting server on port:', PORT);
 console.log('Anthropic Key present:', !!KEY);
 console.log('Maersk Key present:', !!MAERSK_KEY);
 console.log('Terminal49 Key present:', !!TERMINAL49_KEY);
+console.log('DCLI Key present:', !!DCLI_KEY);
 
 // =====================================================
-// BNSF / UP / CSX / NS RAIL RAMPS - Static curated database
+// RAIL RAMPS DATABASE
 // =====================================================
 const RAIL_RAMPS = {
   'Chicago, IL (BNSF/UP)': [
@@ -62,6 +64,67 @@ const RAIL_RAMPS = {
   ],
 };
 
+// =====================================================
+// CHASSIS POOLS DATABASE
+// =====================================================
+const CHASSIS_POOLS = {
+  'LA/Long Beach': [
+    { name: 'DCLI Wilmington Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\', Tri-Axle', address: '1521 Pier A Way, Wilmington, CA 90744', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00\nSat 06:00-12:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$22-28', notes: 'Major DCLI Pool 3 location at LA/LB. Largest chassis pool in the region.' },
+    { name: 'TRAC Intermodal LA/LB Depot', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '750 Pier A Plaza, Long Beach, CA 90802', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$20-25', notes: 'TRAC Pool 3 location. Empty return accepted.' },
+    { name: 'Flexi-Van Compton Depot', operator: 'Flexi-Van', type: 'depot', poolType: 'private', returnAny: false, chassisTypes: '20\', 40\', 45\'', address: '2150 E Sepulveda Blvd, Long Beach, CA 90810', phone: '+1-732-577-7115', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.flexi-van.com', dailyRate: '$22-28', notes: 'Flexi-Van LA/LB chassis location.' },
+    { name: 'POOL3 LA/Long Beach', operator: 'Pool 3 LLC', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: 'Multiple LA/LB terminals', phone: '+1-855-435-3254', hours: 'Varies by terminal', appointmentUrl: 'https://www.pool3llc.com', dailyRate: '$18-25', notes: 'Pool 3 is the gray pool for LA/LB - shared chassis accepted at any participating terminal.' },
+  ],
+  'New York/New Jersey': [
+    { name: 'DCLI Elizabeth Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\', Tri-Axle', address: '1100 McLester St, Elizabeth, NJ 07201', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-19:00\nSat 06:00-14:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$24-30', notes: 'DCLI NY/NJ main depot. Serving APM, Maher, GCT, PNCT.' },
+    { name: 'TRAC NY/NJ Depot', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1210 Corbin St, Elizabeth, NJ 07201', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$24-30', notes: 'TRAC NY/NJ Port Newark area. North Jersey chassis pool.' },
+    { name: 'Flexi-Van Newark Depot', operator: 'Flexi-Van', type: 'depot', poolType: 'private', returnAny: false, chassisTypes: '20\', 40\', 45\'', address: '1101 Doremus Ave, Newark, NJ 07105', phone: '+1-732-577-7115', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.flexi-van.com', dailyRate: '$24-30', notes: 'Flexi-Van Newark location for carrier-specific chassis.' },
+  ],
+  'Savannah': [
+    { name: 'DCLI Savannah Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1 Container Way, Garden City, GA 31408', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-19:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$20-26', notes: 'DCLI Savannah serving GCT/Garden City terminals.' },
+    { name: 'TRAC Savannah Depot', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '2 GA-21, Garden City, GA 31408', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$20-26', notes: 'TRAC Savannah port area chassis pool.' },
+  ],
+  'Seattle/Tacoma': [
+    { name: 'DCLI Seattle Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '4737 East Marginal Way S, Seattle, WA 98134', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$22-28', notes: 'DCLI Pacific Northwest hub.' },
+    { name: 'DCLI Tacoma Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1801 Lincoln Ave, Tacoma, WA 98421', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$22-28', notes: 'DCLI Tacoma serving NWSA terminals.' },
+    { name: 'TRAC Seattle Depot', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '5400 W Marginal Way SW, Seattle, WA 98106', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$22-28', notes: 'TRAC Seattle chassis pool.' },
+  ],
+  'Houston': [
+    { name: 'DCLI Houston Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '13000 Highway 225, La Porte, TX 77571', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$20-26', notes: 'DCLI Houston serving Barbours Cut and Bayport terminals.' },
+    { name: 'TRAC Houston Depot', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1201 Strang Rd, La Porte, TX 77571', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$20-26', notes: 'TRAC Houston Port chassis depot.' },
+    { name: 'Flexi-Van Houston', operator: 'Flexi-Van', type: 'depot', poolType: 'private', returnAny: false, chassisTypes: '20\', 40\', 45\'', address: '1500 Old Hwy 90, Houston, TX 77506', phone: '+1-732-577-7115', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.flexi-van.com', dailyRate: '$20-26', notes: 'Flexi-Van Houston chassis location.' },
+  ],
+  'Charleston': [
+    { name: 'DCLI Charleston Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1948 Macalloy Rd, North Charleston, SC 29405', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$22-28', notes: 'DCLI Charleston serving Wando and North Charleston terminals.' },
+    { name: 'TRAC Charleston', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '5300 Carner Ave, North Charleston, SC 29406', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$22-28', notes: 'TRAC Charleston Port chassis pool.' },
+  ],
+  'Norfolk': [
+    { name: 'DCLI Norfolk Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '7150 Hampton Blvd, Norfolk, VA 23505', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$22-28', notes: 'DCLI Norfolk serving NIT and VIG terminals.' },
+    { name: 'TRAC Norfolk Depot', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '2700 International Pkwy, Virginia Beach, VA 23452', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$22-28', notes: 'TRAC Hampton Roads chassis pool.' },
+  ],
+  'Baltimore': [
+    { name: 'DCLI Baltimore Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '2700 Broening Hwy, Baltimore, MD 21222', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$22-28', notes: 'DCLI Baltimore Seagirt Marine Terminal chassis.' },
+    { name: 'TRAC Baltimore', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '2200 Broening Hwy, Baltimore, MD 21224', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$22-28', notes: 'TRAC Baltimore chassis pool.' },
+  ],
+  'Oakland': [
+    { name: 'DCLI Oakland Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1717 Middle Harbor Rd, Oakland, CA 94607', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$24-30', notes: 'DCLI Oakland Port chassis depot.' },
+    { name: 'TRAC Oakland', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1530 Maritime St, Oakland, CA 94607', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$24-30', notes: 'TRAC Oakland chassis pool.' },
+  ],
+  'Miami': [
+    { name: 'DCLI Miami Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '2151 NW 25th St, Miami, FL 33142', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$22-28', notes: 'DCLI Miami / PortMiami chassis depot.' },
+    { name: 'TRAC Miami', operator: 'TRAC Intermodal', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '1283 NW North River Dr, Miami, FL 33125', phone: '+1-866-822-2557', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.tracintermodal.com', dailyRate: '$22-28', notes: 'TRAC Miami Port chassis pool.' },
+  ],
+  'Chicago, IL (BNSF/UP)': [
+    { name: 'UMAX Chicago - UP Global IV', operator: 'UMAX (Union Pacific)', type: 'rail', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '4400 E 130th St, Chicago, IL 60633', phone: '+1-888-877-7267', hours: 'Mon-Fri 05:00-23:00', appointmentUrl: 'https://www.umax.com', dailyRate: '$18-22', notes: 'UMAX rail-tied chassis pool at UP Chicago.' },
+    { name: 'DCLI Chicago Rail Depot', operator: 'DCLI', type: 'depot', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '5600 W 73rd St, Bedford Park, IL 60638', phone: '+1-855-435-3254', hours: 'Mon-Fri 06:00-18:00', appointmentUrl: 'https://www.dcli.com', dailyRate: '$18-22', notes: 'DCLI Chicago rail intermodal area.' },
+  ],
+  'Memphis, TN (BNSF/UP)': [
+    { name: 'UMAX Memphis - UP Yard', operator: 'UMAX (Union Pacific)', type: 'rail', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '2200 Frank Pidgeon Pkwy, Memphis, TN 38109', phone: '+1-888-877-7267', hours: 'Mon-Fri 05:30-22:00', appointmentUrl: 'https://www.umax.com', dailyRate: '$18-22', notes: 'UMAX chassis at UP Memphis intermodal.' },
+  ],
+  'Dallas/Fort Worth, TX (BNSF/UP)': [
+    { name: 'UMAX Dallas - BNSF Alliance', operator: 'UMAX (Union Pacific)', type: 'rail', poolType: 'gray', returnAny: true, chassisTypes: '20\', 40\', 45\'', address: '3300 Intermodal Pkwy, Haslet, TX 76052', phone: '+1-888-877-7267', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.umax.com', dailyRate: '$18-22', notes: 'UMAX rail chassis at BNSF Alliance.' },
+  ],
+};
+
 function httpsGet(url, headers = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
@@ -104,55 +167,35 @@ async function fetchMaerskLocations(region) {
   }
 }
 
-// Fetch Terminal49 port/terminal data
 async function fetchTerminal49Ports(region) {
   if (!TERMINAL49_KEY) return null;
   try {
-    // Terminal49 has a /ports endpoint that lists supported ports
-    // and a /terminals endpoint for terminal details
-    const cityMap = {
-      'LA/Long Beach': 'Los Angeles',
-      'New York/New Jersey': 'New York',
-      'Savannah': 'Savannah',
-      'Seattle/Tacoma': 'Seattle',
-      'Houston': 'Houston',
-      'Charleston': 'Charleston',
-      'Norfolk': 'Norfolk',
-      'Baltimore': 'Baltimore',
-      'Oakland': 'Oakland',
-      'Miami': 'Miami',
-    };
-    const city = cityMap[region] || region.split('/')[0].trim();
-
     const url = `https://api.terminal49.com/v2/terminals?filter[country_code]=US`;
     const r = await httpsGet(url, {
       'Authorization': `Token ${TERMINAL49_KEY}`,
       'Content-Type': 'application/vnd.api+json',
       'Accept': 'application/vnd.api+json'
     });
-    console.log('Terminal49 status:', r.status);
     if (r.status === 200) {
       try {
         const parsed = JSON.parse(r.body);
-        const allTerminals = parsed.data || [];
-        // Filter by city name match
-        const filtered = allTerminals.filter(t => {
-          const name = (t.attributes?.name || '').toLowerCase();
-          const cityLower = city.toLowerCase();
-          return name.includes(cityLower) || cityLower.split(' ').some(w => name.includes(w));
-        });
-        return filtered.length > 0 ? filtered : allTerminals.slice(0, 10);
-      } catch(e) {
-        console.log('T49 parse error:', e.message);
-        return null;
-      }
+        return parsed.data || [];
+      } catch(e) { return null; }
     }
-    console.log('T49 response:', r.body.substring(0, 200));
     return null;
-  } catch(e) {
-    console.error('Terminal49 error:', e.message);
+  } catch(e) { return null; }
+}
+
+async function fetchDCLIChassis(region) {
+  if (!DCLI_KEY) return null;
+  try {
+    // Placeholder for when DCLI API access is approved
+    // Typical DCLI API would be something like:
+    // const url = `https://api.dcli.com/v1/chassis/availability?location=${encodeURIComponent(region)}`;
+    // const r = await httpsGet(url, { 'X-API-Key': DCLI_KEY, 'Accept': 'application/json' });
+    // Will return real availability counts when activated
     return null;
-  }
+  } catch(e) { return null; }
 }
 
 const server = http.createServer(async (req, res) => {
@@ -167,7 +210,9 @@ const server = http.createServer(async (req, res) => {
       anthropic: !!KEY,
       maersk: !!MAERSK_KEY,
       terminal49: !!TERMINAL49_KEY,
-      rail_regions: Object.keys(RAIL_RAMPS).length
+      dcli: !!DCLI_KEY,
+      rail_regions: Object.keys(RAIL_RAMPS).length,
+      chassis_regions: Object.keys(CHASSIS_POOLS).length
     }));
     return;
   }
@@ -183,12 +228,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.url.startsWith('/terminal49-test')) {
+  if (req.url.startsWith('/chassis-pools')) {
     const u = new URL(req.url, 'http://x');
-    const region = u.searchParams.get('region') || 'LA/Long Beach';
-    const data = await fetchTerminal49Ports(region);
+    const region = u.searchParams.get('region') || '';
+    const pools = CHASSIS_POOLS[region] || [];
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ region, count: data ? data.length : 0, data: data || null }));
+    res.end(JSON.stringify({ region, count: pools.length, pools }));
     return;
   }
 
@@ -210,6 +255,7 @@ const server = http.createServer(async (req, res) => {
 
       let enhancedPrompt = prompt;
       const realDataParts = [];
+      const isChassisMode = prompt.includes('"mode":"chassis"') || prompt.includes('Pool:') || prompt.includes('chassis');
 
       // Maersk
       if ((prompt.includes('Maersk') || prompt.includes('Hamburg Sud')) && MAERSK_KEY) {
@@ -223,7 +269,7 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // Terminal49 (covers MSC, CMA CGM, COSCO, Evergreen, ONE, etc at major ports)
+      // Terminal49
       const t49Carriers = ['MSC', 'CMA CGM', 'COSCO', 'Evergreen', 'ONE', 'Hapag-Lloyd', 'ZIM', 'Yang Ming', 'HMM'];
       if (TERMINAL49_KEY && t49Carriers.some(c => prompt.includes(c))) {
         const regionMatch = prompt.match(/Region:([^\n]+?)(?:\s+Container|\s+Booking|\s*$)/);
@@ -232,6 +278,22 @@ const server = http.createServer(async (req, res) => {
           const data = await fetchTerminal49Ports(region);
           if (data && data.length > 0) {
             realDataParts.push(`TERMINAL49 REAL TERMINAL DATA (${data.length} terminals): ${JSON.stringify(data.slice(0, 8)).substring(0, 2500)}`);
+          }
+        }
+      }
+
+      // Chassis pools (static + DCLI when active)
+      if (isChassisMode) {
+        const regionMatch = prompt.match(/Region:([^\n]+?)(?:\s+Container|\s+Booking|\s*$)/);
+        if (regionMatch) {
+          const region = regionMatch[1].trim();
+          if (CHASSIS_POOLS[region]) {
+            realDataParts.push(`REAL CHASSIS POOL DATABASE for ${region}: ${JSON.stringify(CHASSIS_POOLS[region])}`);
+          }
+          // Try DCLI live data if available
+          const dcliData = await fetchDCLIChassis(region);
+          if (dcliData) {
+            realDataParts.push(`DCLI LIVE CHASSIS AVAILABILITY: ${JSON.stringify(dcliData).substring(0, 1500)}`);
           }
         }
       }
@@ -287,10 +349,5 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('Server running on 0.0.0.0:' + PORT);
-});
-
-server.on('error', (e) => {
-  console.error('Server error:', e);
-});
+server.listen(PORT, '0.0.0.0', () => console.log('Server running on 0.0.0.0:' + PORT));
+server.on('error', (e) => console.error('Server error:', e));
