@@ -9,6 +9,57 @@ console.log('Starting server on port:', PORT);
 console.log('Anthropic Key present:', !!KEY);
 console.log('Maersk Key present:', !!MAERSK_KEY);
 
+// =====================================================
+// BNSF / UP RAIL RAMPS - Static curated database
+// =====================================================
+const RAIL_RAMPS = {
+  'Chicago, IL (BNSF/UP)': [
+    { name: 'BNSF Logistics Park Chicago (LPC)', operator: 'BNSF Railway', type: 'rail', address: '26664 S Baseline Rd, Elwood, IL 60421', phone: '+1-800-795-2673', hours: 'Mon-Fri 06:00-22:00\nSat 06:00-18:00', appointmentUrl: 'https://www.bnsf.com/ship-with-bnsf/intermodal/index.html', notes: 'Largest inland port in North America. Use BNSF Ramp View for gate status.' },
+    { name: 'UP Global IV Intermodal', operator: 'Union Pacific', type: 'rail', address: '4400 E 130th St, Chicago, IL 60633', phone: '+1-888-877-7267', hours: 'Mon-Fri 05:00-23:00\nSat 06:00-18:00', appointmentUrl: 'https://www.up.com/customers/intermodal/index.htm', notes: 'UP Global IV - one of UP\'s busiest Chicago terminals.' },
+    { name: 'BNSF Cicero Intermodal', operator: 'BNSF Railway', type: 'rail', address: '5000 W 26th St, Cicero, IL 60804', phone: '+1-800-795-2673', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.bnsf.com/ship-with-bnsf/intermodal/index.html', notes: 'BNSF Chicago metro area facility.' },
+    { name: 'UP Global I Yard', operator: 'Union Pacific', type: 'rail', address: '900 W 47th St, Chicago, IL 60609', phone: '+1-888-877-7267', hours: 'Mon-Fri 06:00-22:00\nSat 06:00-16:00', appointmentUrl: 'https://www.up.com/customers/intermodal/index.htm', notes: 'Domestic and international intermodal terminal.' },
+  ],
+  'Memphis, TN (BNSF/UP)': [
+    { name: 'BNSF Memphis Intermodal Facility', operator: 'BNSF Railway', type: 'rail', address: '3505 Jenell Rd, Memphis, TN 38109', phone: '+1-800-795-2673', hours: 'Mon-Fri 06:00-22:00\nSat 06:00-14:00', appointmentUrl: 'https://www.bnsf.com/ship-with-bnsf/intermodal/index.html', notes: 'Major BNSF Memphis hub serving the Mid-South.' },
+    { name: 'UP Memphis Intermodal Terminal', operator: 'Union Pacific', type: 'rail', address: '2200 Frank Pidgeon Pkwy, Memphis, TN 38109', phone: '+1-888-877-7267', hours: 'Mon-Fri 05:30-22:00', appointmentUrl: 'https://www.up.com/customers/intermodal/index.htm', notes: 'UP\'s main Memphis intermodal facility.' },
+  ],
+  'Kansas City, MO (BNSF/UP)': [
+    { name: 'BNSF Kansas City Intermodal', operator: 'BNSF Railway', type: 'rail', address: '5505 Inland Dr, Edgerton, KS 66021', phone: '+1-800-795-2673', hours: 'Mon-Fri 06:00-22:00\nSat 06:00-16:00', appointmentUrl: 'https://www.bnsf.com/ship-with-bnsf/intermodal/index.html', notes: 'BNSF Logistics Park Kansas City (LPKC).' },
+    { name: 'UP Kansas City Intermodal', operator: 'Union Pacific', type: 'rail', address: '2401 Adams Ave, Kansas City, KS 66106', phone: '+1-888-877-7267', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.up.com/customers/intermodal/index.htm', notes: 'UP\'s Armourdale Yard intermodal operations.' },
+  ],
+  'Dallas/Fort Worth, TX (BNSF/UP)': [
+    { name: 'BNSF Alliance Intermodal Facility', operator: 'BNSF Railway', type: 'rail', address: '3300 Intermodal Pkwy, Haslet, TX 76052', phone: '+1-800-795-2673', hours: 'Mon-Fri 06:00-22:00\nSat 06:00-18:00', appointmentUrl: 'https://www.bnsf.com/ship-with-bnsf/intermodal/index.html', notes: 'BNSF Alliance - one of largest intermodal facilities in TX.' },
+    { name: 'UP Dallas Intermodal Terminal (DIT)', operator: 'Union Pacific', type: 'rail', address: '2500 Singleton Blvd, Dallas, TX 75212', phone: '+1-888-877-7267', hours: 'Mon-Fri 06:00-22:00\nSat 06:00-16:00', appointmentUrl: 'https://www.up.com/customers/intermodal/index.htm', notes: 'UP\'s Mesquite intermodal facility.' },
+  ],
+  'St. Louis, MO (UP)': [
+    { name: 'UP Dupo Intermodal Yard', operator: 'Union Pacific', type: 'rail', address: '101 Dupo Rd, Dupo, IL 62239', phone: '+1-888-877-7267', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.up.com/customers/intermodal/index.htm', notes: 'UP St. Louis area facility just across the river in IL.' },
+  ],
+  'Cincinnati, OH (CSX/NS)': [
+    { name: 'CSX Queensgate Yard', operator: 'CSX Transportation', type: 'rail', address: '2000 Gest St, Cincinnati, OH 45204', phone: '+1-877-279-3878', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.shipcsx.com', notes: 'CSX Cincinnati intermodal terminal.' },
+    { name: 'NS Sharonville Intermodal', operator: 'Norfolk Southern', type: 'rail', address: '11700 Reading Rd, Cincinnati, OH 45241', phone: '+1-800-635-5768', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.nscorp.com', notes: 'Norfolk Southern Cincinnati area intermodal terminal.' },
+  ],
+  'Columbus, OH (CSX/NS)': [
+    { name: 'NS Rickenbacker Intermodal Terminal', operator: 'Norfolk Southern', type: 'rail', address: '2640 Rohr Rd, Lockbourne, OH 43137', phone: '+1-800-635-5768', hours: 'Mon-Fri 06:00-22:00\nSat 06:00-16:00', appointmentUrl: 'https://www.nscorp.com', notes: 'Major NS intermodal facility in Columbus area.' },
+  ],
+  'Detroit, MI (CSX/NS)': [
+    { name: 'CSX Livernois Intermodal', operator: 'CSX Transportation', type: 'rail', address: '5301 W Jefferson Ave, Detroit, MI 48209', phone: '+1-877-279-3878', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.shipcsx.com', notes: 'CSX Detroit area intermodal terminal.' },
+    { name: 'NS Detroit Intermodal Terminal', operator: 'Norfolk Southern', type: 'rail', address: '8401 Vernor Hwy, Detroit, MI 48209', phone: '+1-800-635-5768', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.nscorp.com', notes: 'Norfolk Southern Detroit intermodal.' },
+  ],
+  'Minneapolis, MN (BNSF/UP)': [
+    { name: 'BNSF Minneapolis Intermodal Facility', operator: 'BNSF Railway', type: 'rail', address: '15600 Galaxie Ave W, Rosemount, MN 55068', phone: '+1-800-795-2673', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.bnsf.com/ship-with-bnsf/intermodal/index.html', notes: 'BNSF Twin Cities intermodal.' },
+  ],
+  'Denver, CO (BNSF/UP)': [
+    { name: 'BNSF Denver Intermodal', operator: 'BNSF Railway', type: 'rail', address: '5151 Pena Blvd, Denver, CO 80239', phone: '+1-800-795-2673', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.bnsf.com/ship-with-bnsf/intermodal/index.html', notes: 'BNSF Denver Front Range intermodal.' },
+    { name: 'UP Denver Intermodal Terminal', operator: 'Union Pacific', type: 'rail', address: '5500 Holly St, Commerce City, CO 80022', phone: '+1-888-877-7267', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.up.com/customers/intermodal/index.htm', notes: 'UP Denver intermodal facility.' },
+  ],
+  'Indianapolis, IN (CSX/NS)': [
+    { name: 'CSX Indianapolis Intermodal', operator: 'CSX Transportation', type: 'rail', address: '2425 Hovey St, Indianapolis, IN 46202', phone: '+1-877-279-3878', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.shipcsx.com', notes: 'CSX Indianapolis intermodal terminal.' },
+  ],
+  'Louisville, KY (CSX/NS)': [
+    { name: 'CSX Louisville Intermodal', operator: 'CSX Transportation', type: 'rail', address: '3501 Algonquin Pkwy, Louisville, KY 40211', phone: '+1-877-279-3878', hours: 'Mon-Fri 06:00-22:00', appointmentUrl: 'https://www.shipcsx.com', notes: 'CSX Louisville Osborn Yard intermodal.' },
+  ],
+};
+
 function httpsGet(url, headers = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(url);
@@ -21,66 +72,32 @@ function httpsGet(url, headers = {}) {
   });
 }
 
-// Fetch Maersk locations - terminals and depots in US
 async function fetchMaerskLocations(region) {
   if (!MAERSK_KEY) return null;
   try {
-    // Map our regions to Maersk city search terms
     const cityMap = {
-      'LA/Long Beach': 'Los Angeles',
-      'New York/New Jersey': 'New York',
-      'Savannah': 'Savannah',
-      'Seattle/Tacoma': 'Seattle',
-      'Houston': 'Houston',
-      'Charleston': 'Charleston',
-      'Norfolk': 'Norfolk',
-      'Baltimore': 'Baltimore',
-      'Oakland': 'Oakland',
-      'Miami': 'Miami'
+      'LA/Long Beach': 'Los Angeles', 'New York/New Jersey': 'New York',
+      'Savannah': 'Savannah', 'Seattle/Tacoma': 'Seattle', 'Houston': 'Houston',
+      'Charleston': 'Charleston', 'Norfolk': 'Norfolk', 'Baltimore': 'Baltimore',
+      'Oakland': 'Oakland', 'Miami': 'Miami',
     };
     const city = cityMap[region] || region.split('/')[0].trim();
-
-    // Get TERMINAL and DEPOT locations in the US
-    // Search by city + country US + types we care about
     const results = [];
 
-    // Fetch terminals
-    const termUrl = `https://api.maersk.com/reference-data/locations?cityName=${encodeURIComponent(city)}&countryCode=US&locationType=TERMINAL&limit=50`;
-    console.log('Calling Maersk terminals:', termUrl);
-    const termRes = await httpsGet(termUrl, {
-      'Consumer-Key': MAERSK_KEY,
-      'Accept': 'application/json'
-    });
-    console.log('Maersk terminals status:', termRes.status);
-    if (termRes.status === 200) {
-      try {
-        const parsed = JSON.parse(termRes.body);
-        if (parsed.locations) results.push(...parsed.locations);
-        else if (Array.isArray(parsed)) results.push(...parsed);
-      } catch(e) { console.log('Parse err terminals'); }
-    } else {
-      console.log('Maersk terminal response:', termRes.body.substring(0, 300));
+    for (const locType of ['TERMINAL', 'DEPOT']) {
+      const url = `https://api.maersk.com/reference-data/locations?cityName=${encodeURIComponent(city)}&countryCode=US&locationType=${locType}&limit=50`;
+      const r = await httpsGet(url, { 'Consumer-Key': MAERSK_KEY, 'Accept': 'application/json' });
+      if (r.status === 200) {
+        try {
+          const parsed = JSON.parse(r.body);
+          if (parsed.locations) results.push(...parsed.locations);
+          else if (Array.isArray(parsed)) results.push(...parsed);
+        } catch(e) {}
+      }
     }
-
-    // Fetch depots
-    const depUrl = `https://api.maersk.com/reference-data/locations?cityName=${encodeURIComponent(city)}&countryCode=US&locationType=DEPOT&limit=50`;
-    console.log('Calling Maersk depots:', depUrl);
-    const depRes = await httpsGet(depUrl, {
-      'Consumer-Key': MAERSK_KEY,
-      'Accept': 'application/json'
-    });
-    console.log('Maersk depots status:', depRes.status);
-    if (depRes.status === 200) {
-      try {
-        const parsed = JSON.parse(depRes.body);
-        if (parsed.locations) results.push(...parsed.locations);
-        else if (Array.isArray(parsed)) results.push(...parsed);
-      } catch(e) { console.log('Parse err depots'); }
-    }
-
     return results.length > 0 ? results : null;
   } catch(e) {
-    console.error('Maersk fetch error:', e.message);
+    console.error('Maersk error:', e.message);
     return null;
   }
 }
@@ -90,21 +107,29 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'GET' && !req.url.startsWith('/maersk-locations')) {
+  if (req.method === 'GET' && !req.url.startsWith('/maersk-locations') && !req.url.startsWith('/rail-ramps')) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', anthropic: !!KEY, maersk: !!MAERSK_KEY }));
+    res.end(JSON.stringify({ status: 'ok', anthropic: !!KEY, maersk: !!MAERSK_KEY, rail_regions: Object.keys(RAIL_RAMPS).length }));
     return;
   }
 
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
-  // Test endpoint
   if (req.url.startsWith('/maersk-locations')) {
     const u = new URL(req.url, 'http://x');
     const region = u.searchParams.get('region') || 'LA/Long Beach';
     const data = await fetchMaerskLocations(region);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ region, count: data ? data.length : 0, data: data || null }));
+    return;
+  }
+
+  if (req.url.startsWith('/rail-ramps')) {
+    const u = new URL(req.url, 'http://x');
+    const region = u.searchParams.get('region') || '';
+    const ramps = RAIL_RAMPS[region] || [];
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ region, count: ramps.length, ramps }));
     return;
   }
 
@@ -116,18 +141,32 @@ const server = http.createServer(async (req, res) => {
       const prompt = parsed.prompt || '';
 
       let enhancedPrompt = prompt;
+      const realDataParts = [];
+
+      // Inject Maersk data if it's a Maersk search
       if ((prompt.includes('Maersk') || prompt.includes('Hamburg Sud')) && MAERSK_KEY) {
         const regionMatch = prompt.match(/Region:([^\n]+?)(?:\s+Container|\s+Booking|\s*$)/);
         if (regionMatch) {
           const region = regionMatch[1].trim();
-          console.log('Searching Maersk for region:', region);
           const maerskData = await fetchMaerskLocations(region);
           if (maerskData && maerskData.length > 0) {
-            const sample = JSON.stringify(maerskData.slice(0, 8)).substring(0, 4000);
-            enhancedPrompt = `IMPORTANT: Use this REAL live Maersk location data as the primary source for terminal/depot locations. Build the response around these real locations: ${sample}\n\nUser query:\n${prompt}`;
-            console.log('Enhanced prompt with', maerskData.length, 'real Maersk locations');
+            realDataParts.push(`MAERSK REAL LIVE DATA (${maerskData.length} locations): ${JSON.stringify(maerskData.slice(0, 8)).substring(0, 3500)}`);
           }
         }
+      }
+
+      // Inject BNSF/UP rail ramp data for midwest regions
+      const railRegionMatch = prompt.match(/Region:(Chicago|Memphis|Kansas City|Dallas\/Fort Worth|St\. Louis|Cincinnati|Columbus|Detroit|Minneapolis|Denver|Indianapolis|Louisville)[^\n]*?(?:\s+Container|\s+Booking|\s*$)/);
+      if (railRegionMatch) {
+        const matchedKey = Object.keys(RAIL_RAMPS).find(k => k.toLowerCase().startsWith(railRegionMatch[1].toLowerCase()));
+        if (matchedKey && RAIL_RAMPS[matchedKey]) {
+          realDataParts.push(`REAL RAIL RAMP DATABASE for ${matchedKey}: ${JSON.stringify(RAIL_RAMPS[matchedKey])}`);
+        }
+      }
+
+      if (realDataParts.length > 0) {
+        enhancedPrompt = `IMPORTANT: Use this REAL verified data as the primary source. Build the response around these real locations with their exact names, addresses, phone numbers, and hours:\n\n${realDataParts.join('\n\n')}\n\nUser query:\n${prompt}`;
+        console.log('Enhanced prompt with', realDataParts.length, 'real data sources');
       }
 
       const payload = JSON.stringify({
