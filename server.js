@@ -11,8 +11,7 @@ console.log('Starting server on port:', PORT);
 console.log('Anthropic Key present:', !!KEY);
 console.log('Maersk Key present:', !!MAERSK_KEY);
 console.log('Terminal49 Key present:', !!TERMINAL49_KEY);
-console.log('DCLI Key present:', !!DCLI_KEY);
-
+console.log('DCLI Key present:', !!DCLI_KEY, '(deploy v2)');
 // =====================================================
 // RAIL RAMPS DATABASE
 // =====================================================
