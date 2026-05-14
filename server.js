@@ -1,4 +1,4 @@
-const http = require('http');
+const http = require
 const https = require('https');
 
 const KEY = process.env.ANTHROPIC_KEY;
